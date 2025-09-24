@@ -1,28 +1,192 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>선적계획 관리 시스템</title>
+    <title>LoGi-SPhere</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f5f5f5;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        .header .subtitle {
+            margin-top: 5px;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 120px);
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            color: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-menu li {
+            border-bottom: 1px solid #34495e;
+        }
+        .sidebar-menu a {
+            display: block;
+            padding: 20px 25px;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .sidebar-menu a:hover {
+            background-color: #3498db;
+            padding-left: 35px;
+        }
+        .sidebar-menu a.active {
+            background-color: #3498db;
+            border-left: 4px solid #fff;
+        }
+        .content {
+            flex: 1;
+            padding: 40px;
             background-color: white;
-            padding: 30px;
+            margin: 20px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1 {
-            color: #333;
+        .welcome-section {
             text-align: center;
+            padding: 60px 20px;
+        }
+        .welcome-section h2 {
+            color: #2c3e50;
+            font-size: 2.2em;
+            margin-bottom: 20px;
+        }
+        .welcome-section p {
+            color: #7f8c8d;
+            font-size: 1.2em;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+        /* Logo Styles */
+        .logo-container {
             margin-bottom: 30px;
+        }
+        .logo-circle {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            animation: float 3s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        .logo-circle::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: rotate 4s linear infinite;
+        }
+        .logo-icon {
+            font-size: 3em;
+            margin-bottom: 5px;
+            z-index: 2;
+        }
+        .logo-text {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: white;
+            z-index: 2;
+        }
+        .logo-sphere {
+            font-size: 1.2em;
+            color: rgba(255,255,255,0.9);
+            font-weight: 300;
+            z-index: 2;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Welcome Message */
+        .welcome-message {
+            font-size: 1.3em;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+        
+        /* Stats Overview */
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #e9ecef;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        .stat-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+        .stat-label {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
         }
         table {
             width: 100%;
@@ -97,128 +261,60 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>선적계획 관리 시스템</h1>
+    <div class="header">
+        <h1>LoGi-SPhere</h1>
+        <div class="subtitle">Global Logistics & Shipping Management Platform</div>
+    </div>
+    
+    <div class="main-container">
+        <nav class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="/" id="home-link" class="active">🏠 Home</a></li>
+                <li><a href="/dashboard" id="dashboard-link">📊 Dashboard</a></li>
+                <li><a href="/shipment" id="shipment-link">📦 Shipment</a></li>
+                <li><a href="/po" id="po-link">📋 Purchase Orders</a></li>
+            </ul>
+        </nav>
         
-        <!-- 새 레코드 추가 폼 -->
-        <div class="add-form">
-            <h3>새 선적계획 추가</h3>
-            <form method="POST" action="/add">
-                <div class="form-row">
-                    <input type="text" name="company_name" placeholder="업체명" required>
-                    <input type="text" name="to_site" placeholder="선적지 (To Site)" required>
-                    <input type="text" name="model_name" placeholder="모델명" required>
-                    <input type="text" name="shipping_week" placeholder="선적주차 (예: 2024-40주차)" required>
-                    <input type="number" name="shipping_quantity" placeholder="선적수량" required>
-                    <button type="submit" class="btn btn-success">추가</button>
+        <main class="content">
+            <div class="welcome-section">
+                <!-- LoGi-SPhere Logo -->
+                <div class="logo-container">
+                    <div class="logo-circle">
+                        <div class="logo-icon">🌐</div>
+                        <div class="logo-text">LoGi</div>
+                        <div class="logo-sphere">SPhere</div>
+                    </div>
                 </div>
-            </form>
-        </div>
-
-        <!-- 선적계획 목록 테이블 -->
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>업체명</th>
-                    <th>선적지 (To Site)</th>
-                    <th>모델명</th>
-                    <th>선적주차</th>
-                    <th>선적수량</th>
-                    <th>생성일</th>
-                    <th>수정일</th>
-                    <th>작업</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for plan in plans %}
-                <tr id="row-{{ plan.id }}">
-                    <td>{{ plan.id }}</td>
-                    <td>
-                        <span class="display-text">{{ plan.company_name }}</span>
-                        <input type="text" class="edit-input" style="display: none;" value="{{ plan.company_name }}" name="company_name">
-                    </td>
-                    <td>
-                        <span class="display-text">{{ plan.to_site }}</span>
-                        <input type="text" class="edit-input" style="display: none;" value="{{ plan.to_site }}" name="to_site">
-                    </td>
-                    <td>
-                        <span class="display-text">{{ plan.model_name }}</span>
-                        <input type="text" class="edit-input" style="display: none;" value="{{ plan.model_name }}" name="model_name">
-                    </td>
-                    <td>
-                        <span class="display-text">{{ plan.shipping_week }}</span>
-                        <input type="text" class="edit-input" style="display: none;" value="{{ plan.shipping_week }}" name="shipping_week">
-                    </td>
-                    <td>
-                        <span class="display-text">{{ plan.shipping_quantity }}</span>
-                        <input type="number" class="edit-input" style="display: none;" value="{{ plan.shipping_quantity }}" name="shipping_quantity">
-                    </td>
-                    <td>{{ plan.created_at }}</td>
-                    <td>{{ plan.updated_at }}</td>
-                    <td>
-                        <button class="btn btn-primary edit-btn" onclick="editRow({{ plan.id }})">수정</button>
-                        <button class="btn btn-success save-btn" style="display: none;" onclick="saveRow({{ plan.id }})">저장</button>
-                        <button class="btn btn-danger cancel-btn" style="display: none;" onclick="cancelEdit({{ plan.id }})">취소</button>
-                        <a href="/history/{{ plan.id }}" class="btn btn-primary">히스토리</a>
-                        <form method="POST" action="/delete/{{ plan.id }}" style="display: inline;" onsubmit="return confirm('정말 삭제하시겠습니까?')">
-                            <button type="submit" class="btn btn-danger">삭제</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                
+                <h2>Welcome to LoGi-SPhere</h2>
+                <p class="welcome-message">
+                    🚀 <strong>Your Global Logistics Command Center</strong><br>
+                    Streamline your supply chain operations with our comprehensive platform.<br>
+                    Use the sidebar navigation to access <strong>Shipment Management</strong> and <strong>Purchase Order Management</strong>.
+                </p>
+                
+                <div class="stats-overview">
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-label">Shipment Plans</div>
+                        <div class="stat-value">Ready to Manage</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📋</div>
+                        <div class="stat-label">Purchase Orders</div>
+                        <div class="stat-value">Real-time Tracking</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-label">Analytics</div>
+                        <div class="stat-value">Complete History</div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <script>
-        function editRow(id) {
-            const row = document.getElementById(`row-${id}`);
-            const displayTexts = row.querySelectorAll('.display-text');
-            const editInputs = row.querySelectorAll('.edit-input');
-            const editBtn = row.querySelector('.edit-btn');
-            const saveBtn = row.querySelector('.save-btn');
-            const cancelBtn = row.querySelector('.cancel-btn');
-            
-            // 텍스트 숨기고 입력 필드 표시
-            displayTexts.forEach(text => text.style.display = 'none');
-            editInputs.forEach(input => input.style.display = 'block');
-            
-            // 버튼 상태 변경
-            editBtn.style.display = 'none';
-            saveBtn.style.display = 'inline-block';
-            cancelBtn.style.display = 'inline-block';
-            
-            // 행 스타일 변경
-            row.classList.add('edit-row');
-        }
-        
-        function saveRow(id) {
-            const row = document.getElementById(`row-${id}`);
-            const editInputs = row.querySelectorAll('.edit-input');
-            
-            // 폼 데이터 생성
-            const formData = new FormData();
-            editInputs.forEach(input => {
-                formData.append(input.name, input.value);
-            });
-            
-            // 서버로 전송
-            fetch(`/update/${id}`, {
-                method: 'POST',
-                body: formData
-            }).then(response => {
-                if (response.ok) {
-                    location.reload();
-                } else {
-                    alert('저장 중 오류가 발생했습니다.');
-                }
-            });
-        }
-        
-        function cancelEdit(id) {
-            location.reload();
-        }
-    </script>
+
 </body>
 </html>

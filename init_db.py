@@ -18,8 +18,9 @@ def init_database():
             model_name TEXT NOT NULL,
             shipping_week TEXT NOT NULL,
             shipping_quantity INTEGER NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            remark TEXT CHECK (LENGTH(remark) <= 100),
+            created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+            updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
             is_deleted BOOLEAN DEFAULT FALSE
         )
     ''')
@@ -29,37 +30,29 @@ def init_database():
         CREATE TABLE IF NOT EXISTS shipping_plans_history (
             history_id INTEGER PRIMARY KEY AUTOINCREMENT,
             plan_id INTEGER NOT NULL,
-            action_type TEXT NOT NULL, -- 'INSERT', 'UPDATE', 'DELETE'
             field_name TEXT,
             old_value TEXT,
             new_value TEXT,
-            changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            changed_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
             FOREIGN KEY (plan_id) REFERENCES shipping_plans (id)
         )
     ''')
     
     # 샘플 데이터 추가
-    cursor.execute('SELECT COUNT(*) FROM shipping_plans')
-    if cursor.fetchone()[0] == 0:
-        sample_data = [
-            ('삼성전자', '부산항', 'Galaxy S24', '2024-40주차', 1000),
-            ('LG전자', '인천항', 'OLED TV 55"', '2024-41주차', 1500),
-            ('현대자동차', '울산항', 'Sonata', '2024-42주차', 2000),
-            ('SK하이닉스', '평택항', 'DDR5 메모리', '2024-43주차', 800)
-        ]
+    # cursor.execute('SELECT COUNT(*) FROM shipping_plans')
+    # if cursor.fetchone()[0] == 0:
+    #     sample_data = [
+    #         ('삼성전자', '부산항', 'Galaxy S24', '2024-40주차', 1000),
+    #         ('LG전자', '인천항', 'OLED TV 55"', '2024-41주차', 1500),
+    #         ('현대자동차', '울산항', 'Sonata', '2024-42주차', 2000),
+    #         ('SK하이닉스', '평택항', 'DDR5 메모리', '2024-43주차', 800)
+    #     ]
         
-        cursor.executemany('''
-            INSERT INTO shipping_plans (company_name, to_site, model_name, shipping_week, shipping_quantity)
-            VALUES (?, ?, ?, ?, ?)
-        ''', sample_data)
+    #     cursor.executemany('''
+    #         INSERT INTO shipping_plans (company_name, to_site, model_name, shipping_week, shipping_quantity)
+    #         VALUES (?, ?, ?, ?, ?)
+    #     ''', sample_data)
         
-        # 샘플 데이터에 대한 히스토리 기록
-        for i, data in enumerate(sample_data, 1):
-            cursor.execute('''
-                INSERT INTO shipping_plans_history (plan_id, action_type, field_name, new_value)
-                VALUES (?, 'INSERT', 'initial_record', 'Record created')
-            ''', (i,))
-    
     conn.commit()
     conn.close()
     print("데이터베이스가 초기화되었습니다.")

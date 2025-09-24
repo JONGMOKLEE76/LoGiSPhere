@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Orders - LoGi-SPhere</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        .header .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .header .nav-link:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 120px);
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            color: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-menu li {
+            border-bottom: 1px solid #34495e;
+        }
+        .sidebar-menu a {
+            display: block;
+            padding: 20px 25px;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .sidebar-menu a:hover {
+            background-color: #3498db;
+            padding-left: 35px;
+        }
+        .sidebar-menu a.active {
+            background-color: #3498db;
+            border-left: 4px solid #fff;
+        }
+        .container {
+            flex: 1;
+            background-color: white;
+            padding: 30px;
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+        }
+        .add-form {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .form-row input, .form-row select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+        .btn {
+            padding: 8px 16px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #6f42c1;
+            color: white;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .edit-row {
+            background-color: #fff3cd !important;
+        }
+        .edit-input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 Purchase Order Management</h1>
+        <a href="/" class="nav-link">← Back to Home</a>
+    </div>
+    
+    <div class="main-container">
+        <nav class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="/" id="home-link">🏠 Home</a></li>
+                <li><a href="/dashboard" id="dashboard-link">📊 Dashboard</a></li>
+                <li><a href="/shipment" id="shipment-link">📦 Shipment</a></li>
+                <li><a href="/po" id="po-link" class="active">📋 Purchase Orders</a></li>
+            </ul>
+        </nav>
+        
+        <div class="container">
+        <h2>Purchase Orders</h2>
+        
+        <!-- Add New PO Form -->
+        <div class="add-form">
+            <h3>Add New Purchase Order</h3>
+            {% if error %}
+            <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #f5c6cb;">
+                {{ error }}
+            </div>
+            {% endif %}
+            <form method="POST" action="/add_po">
+                <div class="form-row">
+                    <input type="text" name="po_number" placeholder="PO Number" required>
+                    <input type="text" name="from_site" placeholder="From Site" required>
+                    <input type="text" name="to_site" placeholder="To Site" required>
+                </div>
+                <div class="form-row">
+                    <input type="text" name="model" placeholder="Model" required>
+                    <input type="number" name="po_qty" placeholder="PO Quantity" required>
+                    <input type="date" name="rsd" placeholder="Request Shipping Date" required>
+                </div>
+                <div class="form-row">
+                    <input type="text" name="remark" placeholder="Remark (Maximum 100 characters)" maxlength="100">
+                    <button type="submit" class="btn btn-success">Add PO</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Purchase Orders List Table -->
+        <table>
+            <thead>
+                <tr>
+                    <th>PO Number</th>
+                    <th>From Site</th>
+                    <th>To Site</th>
+                    <th>Model</th>
+                    <th>PO Qty</th>
+                    <th>RSD</th>
+                    <th>Remark</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in pos %}
+                <tr id="po-row-{{ po.id }}">
+                    <td>
+                        <span class="display-text">{{ po.po_number }}</span>
+                        <input type="text" class="edit-input" style="display: none;" value="{{ po.po_number }}" name="po_number">
+                    </td>
+                    <td>
+                        <span class="display-text">{{ po.from_site }}</span>
+                        <input type="text" class="edit-input" style="display: none;" value="{{ po.from_site }}" name="from_site">
+                    </td>
+                    <td>
+                        <span class="display-text">{{ po.to_site }}</span>
+                        <input type="text" class="edit-input" style="display: none;" value="{{ po.to_site }}" name="to_site">
+                    </td>
+                    <td>
+                        <span class="display-text">{{ po.model }}</span>
+                        <input type="text" class="edit-input" style="display: none;" value="{{ po.model }}" name="model">
+                    </td>
+                    <td>
+                        <span class="display-text">{{ po.po_qty }}</span>
+                        <input type="number" class="edit-input" style="display: none;" value="{{ po.po_qty }}" name="po_qty">
+                    </td>
+                    <td>
+                        <span class="display-text">{{ po.rsd }}</span>
+                        <input type="date" class="edit-input" style="display: none;" value="{{ po.rsd }}" name="rsd">
+                    </td>
+                    <td>
+                        <span class="display-text">{{ po.remark or '' }}</span>
+                        <input type="text" class="edit-input" style="display: none;" value="{{ po.remark or '' }}" name="remark" maxlength="100" placeholder="Maximum 100 characters">
+                    </td>
+                    <td>
+                        <button class="btn btn-primary edit-btn" onclick="editPoRow({{ po.id }})">Edit</button>
+                        <button class="btn btn-success save-btn" style="display: none;" onclick="savePoRow({{ po.id }})">Save</button>
+                        <button class="btn btn-danger cancel-btn" style="display: none;" onclick="cancelPoEdit({{ po.id }})">Cancel</button>
+                        <a href="/po_history/{{ po.id }}" class="btn btn-primary">History</a>
+                        <form method="POST" action="/delete_po/{{ po.id }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this PO?')">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function editPoRow(id) {
+            const row = document.getElementById(`po-row-${id}`);
+            const displayTexts = row.querySelectorAll('.display-text');
+            const editInputs = row.querySelectorAll('.edit-input');
+            const editBtn = row.querySelector('.edit-btn');
+            const saveBtn = row.querySelector('.save-btn');
+            const cancelBtn = row.querySelector('.cancel-btn');
+            
+            // Hide text and show input fields
+            displayTexts.forEach(text => text.style.display = 'none');
+            editInputs.forEach(input => input.style.display = 'block');
+            
+            // Change button state
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'inline-block';
+            cancelBtn.style.display = 'inline-block';
+            
+            // Change row style
+            row.classList.add('edit-row');
+        }
+        
+        function savePoRow(id) {
+            const row = document.getElementById(`po-row-${id}`);
+            const editInputs = row.querySelectorAll('.edit-input');
+            
+            // Create form data
+            const formData = new FormData();
+            editInputs.forEach(input => {
+                formData.append(input.name, input.value);
+            });
+            
+            // Send to server
+            fetch(`/update_po/${id}`, {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('An error occurred while saving PO.');
+                }
+            });
+        }
+        
+        function cancelPoEdit(id) {
+            location.reload();
+        }
+    </script>
+        </div>
+    </div>
+</body>
+</html>

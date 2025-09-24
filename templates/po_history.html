@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PO History - LoGi-SPhere</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        .header .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .header .nav-link:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+        }
+        .current-po {
+            background-color: #e8f4fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            border-left: 4px solid #007bff;
+        }
+        .current-po h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .po-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .po-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .po-info-item strong {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #6f42c1;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .field-change {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .old-value {
+            color: #dc3545;
+            text-decoration: line-through;
+        }
+        .new-value {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .no-history {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px 0;
+        }
+        .btn {
+            padding: 8px 16px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 Purchase Order History</h1>
+        <a href="/po" class="nav-link">← Back to PO Management</a>
+    </div>
+    
+    <div class="container">
+        <h2>PO History for {{ po.po_number }}</h2>
+        
+        <!-- Current PO Information -->
+        <div class="current-po">
+            <h3>Current PO Information</h3>
+            <div class="po-info">
+                <div class="po-info-item">
+                    <strong>PO Number:</strong>
+                    <span>{{ po.po_number }}</span>
+                </div>
+                <div class="po-info-item">
+                    <strong>From Site:</strong>
+                    <span>{{ po.from_site }}</span>
+                </div>
+                <div class="po-info-item">
+                    <strong>To Site:</strong>
+                    <span>{{ po.to_site }}</span>
+                </div>
+                <div class="po-info-item">
+                    <strong>Model:</strong>
+                    <span>{{ po.model }}</span>
+                </div>
+                <div class="po-info-item">
+                    <strong>PO Quantity:</strong>
+                    <span>{{ po.po_qty }}</span>
+                </div>
+                <div class="po-info-item">
+                    <strong>Request Shipping Date:</strong>
+                    <span>{{ po.rsd }}</span>
+                </div>
+                <div class="po-info-item">
+                    <strong>Status:</strong>
+                    <span class="status-{{ po.status.lower() }}">{{ po.status }}</span>
+                </div>
+                <div class="po-info-item">
+                    <strong>Created Date:</strong>
+                    <span>{{ po.created_at }}</span>
+                </div>
+                <div class="po-info-item">
+                    <strong>Last Update:</strong>
+                    <span>{{ po.last_update }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Table -->
+        <h3>Change History</h3>
+        {% if history %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Changed Date</th>
+                    <th>Field</th>
+                    <th>Old Value</th>
+                    <th>New Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in history %}
+                <tr>
+                    <td>{{ h.changed_at }}</td>
+                    <td class="field-change">
+                        {% if h.field_name == 'po_number' %}PO Number
+                        {% elif h.field_name == 'from_site' %}From Site
+                        {% elif h.field_name == 'to_site' %}To Site
+                        {% elif h.field_name == 'model' %}Model
+                        {% elif h.field_name == 'po_qty' %}PO Quantity
+                        {% elif h.field_name == 'rsd' %}Request Shipping Date
+                        {% elif h.field_name == 'status' %}Status
+                        {% else %}{{ h.field_name }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if h.old_value %}
+                            <span class="old-value">{{ h.old_value }}</span>
+                        {% else %}
+                            <em>Empty</em>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if h.new_value %}
+                            <span class="new-value">{{ h.new_value }}</span>
+                        {% else %}
+                            <em>Empty</em>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-history">
+            <p>No change history available for this purchase order.</p>
+            <p>Changes will be recorded here when the PO is modified.</p>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="/po" class="btn btn-primary">Back to PO Management</a>
+        </div>
+    </div>
+</body>
+</html>
