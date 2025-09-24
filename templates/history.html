@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>선적계획 히스토리 - {{ plan.company_name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .plan-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .plan-info h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .info-item {
+            padding: 10px;
+            background-color: white;
+            border-radius: 3px;
+            border-left: 4px solid #007bff;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #6c757d;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .info-value {
+            font-size: 16px;
+            color: #495057;
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #6f42c1;
+            color: white;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .action-insert {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .action-update {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .action-delete {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        .no-history {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px;
+        }
+        .timestamp {
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>선적계획 변경 히스토리</h1>
+        
+        <a href="/" class="btn btn-secondary">← 목록으로 돌아가기</a>
+        
+        <!-- 현재 계획 정보 -->
+        <div class="plan-info">
+            <h3>현재 선적계획 정보 (ID: {{ plan.id }})</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">업체명</div>
+                    <div class="info-value">{{ plan.company_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">선적지</div>
+                    <div class="info-value">{{ plan.to_site }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">선적주차</div>
+                    <div class="info-value">{{ plan.shipping_week }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">선적수량</div>
+                    <div class="info-value">{{ plan.shipping_quantity }}개</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">생성일</div>
+                    <div class="info-value">{{ plan.created_at }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">최종 수정일</div>
+                    <div class="info-value">{{ plan.updated_at }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 히스토리 테이블 -->
+        {% if history %}
+        <table>
+            <thead>
+                <tr>
+                    <th>변경일시</th>
+                    <th>작업 유형</th>
+                    <th>필드명</th>
+                    <th>이전 값</th>
+                    <th>새로운 값</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in history %}
+                <tr>
+                    <td class="timestamp">{{ record.changed_at }}</td>
+                    <td>
+                        <span class="action-{{ record.action_type.lower() }}">
+                            {% if record.action_type == 'INSERT' %}
+                                생성
+                            {% elif record.action_type == 'UPDATE' %}
+                                수정
+                            {% elif record.action_type == 'DELETE' %}
+                                삭제
+                            {% else %}
+                                {{ record.action_type }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        {% if record.field_name == 'company_name' %}
+                            업체명
+                        {% elif record.field_name == 'to_site' %}
+                            선적지
+                        {% elif record.field_name == 'shipping_week' %}
+                            선적주차
+                        {% elif record.field_name == 'shipping_quantity' %}
+                            선적수량
+                        {% elif record.field_name == 'initial_record' %}
+                            초기 레코드
+                        {% elif record.field_name == 'new_record' %}
+                            새 레코드
+                        {% elif record.field_name == 'record_deleted' %}
+                            레코드 삭제
+                        {% else %}
+                            {{ record.field_name }}
+                        {% endif %}
+                    </td>
+                    <td>{{ record.old_value or '-' }}</td>
+                    <td>{{ record.new_value or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-history">
+            <p>변경 히스토리가 없습니다.</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
