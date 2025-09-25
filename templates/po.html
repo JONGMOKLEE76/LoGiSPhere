@@ -172,7 +172,13 @@
 <body>
     <div class="header">
         <h1>📋 Purchase Order Management</h1>
-        <a href="/" class="nav-link">← Back to Home</a>
+            {% if user_info %}
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <img src="/static/avatars/{{ user_info.avatar }}" alt="avatar" style="width:36px;height:36px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.12);">
+                <span style="font-size:1.1em;font-weight:500;">{{ user_info.username }}</span>
+                <a href="/logout" class="nav-link" style="background:#e74c3c;">Logout</a>
+            </div>
+            {% endif %}
     </div>
     
     <div class="main-container">
@@ -182,6 +188,9 @@
                 <li><a href="/dashboard" id="dashboard-link">📊 Dashboard</a></li>
                 <li><a href="/shipment" id="shipment-link">📦 Shipment</a></li>
                 <li><a href="/po" id="po-link" class="active">📋 Purchase Orders</a></li>
+                {% if user_info and user_info.is_admin == 1 %}
+                <li><a href="/users" id="users-link">👤 User Management</a></li>
+                {% endif %}
             </ul>
         </nav>
         

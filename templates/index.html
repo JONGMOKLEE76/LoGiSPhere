@@ -264,6 +264,13 @@
     <div class="header">
         <h1>LoGi-SPhere</h1>
         <div class="subtitle">Global Logistics & Shipping Management Platform</div>
+        {% if user_info %}
+        <div style="position:absolute; top:24px; right:32px; display:flex; align-items:center; gap:12px;">
+            <img src="/static/avatars/{{ user_info.avatar }}" alt="avatar" style="width:40px; height:40px; border-radius:50%; box-shadow:0 2px 8px #764ba2;">
+            <span style="font-size:1.1em; font-weight:bold; color:#fff;">Hi! {{ user_info.username }}</span>
+            <a href="/logout" style="background:#dc3545; color:white; padding:7px 18px; border-radius:6px; text-decoration:none; font-weight:bold; margin-left:8px;">Logout</a>
+        </div>
+        {% endif %}
     </div>
     
     <div class="main-container">
@@ -273,11 +280,15 @@
                 <li><a href="/dashboard" id="dashboard-link">📊 Dashboard</a></li>
                 <li><a href="/shipment" id="shipment-link">📦 Shipment</a></li>
                 <li><a href="/po" id="po-link">📋 Purchase Orders</a></li>
+                {% if is_admin %}
+                <li><a href="/users" id="users-link">👤 User Management</a></li>
+                {% endif %}
             </ul>
         </nav>
         
         <main class="content">
             <div class="welcome-section">
+                <!-- ...existing content... -->
                 <!-- LoGi-SPhere Logo -->
                 <div class="logo-container">
                     <div class="logo-circle">
@@ -310,6 +321,12 @@
                         <div class="stat-label">Analytics</div>
                         <div class="stat-value">Complete History</div>
                     </div>
+                </div>
+                <div style="margin: 60px 0 0 0; text-align: center;">
+                    {% if not user_info %}
+                    <a href="/login" style="background: #667eea; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; margin-right: 16px; font-size: 1.1em; font-weight: bold;">Login</a>
+                    <a href="/signup" style="background: #764ba2; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-size: 1.1em; font-weight: bold;">Sign Up</a>
+                    {% endif %}
                 </div>
             </div>
         </main>

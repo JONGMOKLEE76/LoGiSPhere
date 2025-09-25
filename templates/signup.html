@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Up - LoGi-SPhere</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; margin: 0; }
+        .signup-container { max-width: 480px; margin: 60px auto 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 24px rgba(102,126,234,0.10); padding: 36px 32px; }
+        h1 { text-align: center; color: #764ba2; margin-bottom: 28px; }
+        .form-group { margin-bottom: 22px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
+        input[type="text"], input[type="email"], input[type="password"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1em; }
+        .avatar-list {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            justify-items: center;
+            margin-top: 10px;
+        }
+        .avatar-item { cursor: pointer; border: 2px solid transparent; border-radius: 50%; transition: border 0.2s; }
+        .avatar-item.selected { border: 2px solid #764ba2; }
+        .avatar-item img { width: 56px; height: 56px; border-radius: 50%; }
+        .error-message { color: #dc3545; font-size: 0.98em; margin-top: 6px; text-align: left; }
+        .submit-btn { width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer; margin-top: 18px; }
+        .submit-btn:hover { opacity: 0.9; }
+    </style>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const avatarItems = document.querySelectorAll('.avatar-item');
+        avatarItems.forEach(function(item) {
+            item.addEventListener('click', function() {
+                avatarItems.forEach(function(i) { i.classList.remove('selected'); });
+                item.classList.add('selected');
+                // Set the radio input as checked
+                const radio = item.querySelector('input[type="radio"]');
+                if (radio) radio.checked = true;
+            });
+        });
+    });
+    </script>
+</head>
+<body>
+    <div class="signup-container">
+        <h1>Sign Up</h1>
+        {% if success %}
+        <div style="background:#e6ffed; color:#228B22; border-radius:8px; padding:12px; text-align:center; margin-bottom:18px; font-weight:bold; font-size:1.08em;">
+            Sign up request submitted successfully!
+        </div>
+        {% endif %}
+        <form method="POST" action="/signup">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required value="{{ request.form.get('username', '') }}">
+                {% if error_username %}<div class="error-message">{{ error_username }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required value="{{ request.form.get('email', '') }}">
+                {% if error_email %}<div class="error-message">{{ error_email }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+                {% if error_password %}<div class="error-message">{{ error_password }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label for="company">Company</label>
+                <input type="text" id="company" name="company" required value="{{ request.form.get('company', '') }}">
+                {% if error_company %}<div class="error-message">{{ error_company }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label for="job">Job Title</label>
+                <input type="text" id="job" name="job" required value="{{ request.form.get('job', '') }}">
+                {% if error_job %}<div class="error-message">{{ error_job }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>Choose your avatar</label>
+                <div class="avatar-list">
+                    {% for avatar in avatar_list %}
+                    <label class="avatar-item {% if request.form.get('avatar') == avatar %}selected{% endif %}">
+                        <input type="radio" name="avatar" value="{{ avatar }}" style="display:none;" {% if request.form.get('avatar') == avatar %}checked{% endif %}>
+                        <img src="/static/avatars/{{ avatar }}" alt="avatar">
+                    </label>
+                    {% endfor %}
+                </div>
+                {% if error_avatar %}<div class="error-message">{{ error_avatar }}</div>{% endif %}
+            </div>
+            <button type="submit" class="submit-btn">Sign Up</button>
+        </form>
+        <div style="text-align:center; margin-top:24px;">
+            <a href="/" style="color:#764ba2; text-decoration:none; font-weight:bold;">← Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>

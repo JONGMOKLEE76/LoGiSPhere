@@ -11,23 +11,7 @@
             padding: 0;
             background-color: #f5f5f5;
         }
-                    {% set total_po = week_totals.get(to_site, {}).get('po', 0) %}
-                    {% set total_sp = week_totals.get(to_site, {}).get('sp', 0) %}
-                    {% set total_ratio = (total_po / total_sp * 100) if total_sp > 0 else 0 %}
-                    <td class="total-cell 
-                              {% if total_sp == 0 and total_po > 0 %}po-only-case
-                              {% elif total_sp == 0 %}ratio-none
-                              {% elif total_ratio >= 100 %}ratio-excellent
-                              {% elif total_ratio >= 50 %}ratio-good
-                              {% else %}ratio-critical{% endif %}">
-                        {% if total_sp > 0 %}
-                            <div style="font-size: 14px; font-weight: bold;">{{ total_po }}/{{ total_sp }}</div>
-                        {% elif total_po > 0 %}
-                            <div class="po-only-text" style="font-size: 14px;">{{ total_po }}/0</div>
-                        {% else %}
-                            <div style="font-size: 14px; font-weight: bold; color: #6c757d;">0/0</div>
-                        {% endif %}
-                    </td>eader {
+        .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 15px 20px;
@@ -320,10 +304,15 @@
 </head>
 <body>
     <div class="header">
-        <h1>📊 Dashboard</h1>
-        <a href="/" class="nav-link">← Back to Home</a>
+    <h1>📊 Dashboard</h1>
+    {% if user_info %}
+    <div style="display:flex; align-items:center; gap:12px;">
+        <img src="/static/avatars/{{ user_info.avatar }}" alt="avatar" style="width:32px; height:32px; border-radius:50%; box-shadow:0 2px 8px #764ba2;">
+        <span style="font-size:1em; font-weight:bold; color:#fff;">Hi! {{ user_info.username }}</span>
+        <a href="/logout" style="background:#dc3545; color:white; padding:5px 14px; border-radius:6px; text-decoration:none; font-weight:bold; margin-left:8px;">Logout</a>
     </div>
-    
+    {% endif %}
+    </div>
     <div class="main-container">
         <nav class="sidebar">
             <ul class="sidebar-menu">
@@ -331,9 +320,11 @@
                 <li><a href="/dashboard" id="dashboard-link" class="active">📊 Dashboard</a></li>
                 <li><a href="/shipment" id="shipment-link">📦 Shipment</a></li>
                 <li><a href="/po" id="po-link">📋 Purchase Orders</a></li>
+                {% if user_info and user_info.is_admin == 1 %}
+                <li><a href="/users" id="users-link">👤 User Management</a></li>
+                {% endif %}
             </ul>
         </nav>
-        
         <div class="container">
         <!-- Search Filter Form -->
         <div class="search-filter">

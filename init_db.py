@@ -38,12 +38,12 @@ def init_database():
             password TEXT NOT NULL,
             company TEXT,
             job TEXT,
-            email TEXT,
+            email TEXT UNIQUE,
             avatar TEXT,
             approved INTEGER DEFAULT 0,
             is_admin INTEGER DEFAULT 0,
             created_at TIMESTAMPTZ DEFAULT NOW(),
-            last_login TIMESTAMPTZ
+            last_login TIMESTAMPTZ DEFAULT NOW()
         )
         ''')
         print("users table created successfully")
@@ -67,10 +67,29 @@ def init_database():
         CREATE TABLE IF NOT EXISTS companies (
             id SERIAL PRIMARY KEY,
             name TEXT UNIQUE NOT NULL,
-            type TEXT NOT NULL
+            type TEXT NOT NULL,
+            is_terminated BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMPTZ DEFAULT NOW()
         )
         ''')
         print("companies table created successfully")
+
+        # 회사 목록 추가
+        company_list = [
+            ('AUO', 'Outsourcing'),
+            ('BOEVT', 'Outsourcing'),
+            ('KTC', 'Outsourcing'),
+            ('MOKA', 'Outsourcing'),
+            ('TPV', 'Outsourcing'),
+            ('LGE', 'LG Electronics'),
+            ('Pantos', 'Logistics'),
+            ('UNICO', 'Logistics')
+        ]
+
+        for name, ctype in company_list:
+            cursor.execute('INSERT INTO companies (name, type, is_terminated) VALUES (%s, %s, %s) ON CONFLICT (name) DO NOTHING', (name, ctype, False))
+        
+        print("Companies data inserted successfully")
 
         # 선적계획 메인 테이블
         cursor.execute('''
@@ -134,9 +153,16 @@ def init_database():
             )
         ''')
         print("purchase_orders_history table created successfully")
+        
+        # 변경사항 커밋 - 이것이 없으면 테이블이 실제로 생성되지 않습니다!
+        conn.commit()
+        print("Database initialization completed successfully!")
+        return True
 
     except Exception as e:
         print(f"Error initializing database: {e}")
+        if conn:
+            conn.rollback()
         return False
     
     finally:
@@ -144,8 +170,6 @@ def init_database():
             cursor.close()
         if conn:
             conn.close()
-    
-    print("Database initialized successfully.")
 
 def test_connection():
     """데이터베이스 연결 테스트"""
