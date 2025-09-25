@@ -472,7 +472,7 @@
                 <table class="details-table" id="sp-table">
                     <thead>
                         <tr>
-                            <th>Company</th>
+                            <th>From Site</th>
                             <th>Model</th>
                             <th>Quantity</th>
                             <th>Week</th>
@@ -512,7 +512,7 @@
             <div style="color: #888; font-size: 14px;">
                 <p>💡 You can filter by:</p>
                 <ul style="text-align: left; display: inline-block; margin: 0;">
-                    <li>Supplier (Company/From Site)</li>
+                    <li>Supplier (From Site)</li>
                     <li>Week range (From/To dates)</li>
                     <li>Or leave all filters empty to see all data</li>
                 </ul>
@@ -563,7 +563,7 @@
                 details.sp.forEach(record => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${record.company_name || 'N/A'}</td>
+                        <td>${record.from_site || 'N/A'}</td>
                         <td>${record.model_name || 'N/A'}</td>
                         <td style="text-align: right; font-weight: bold;">${record.quantity || 0}</td>
                         <td>${record.week || 'N/A'}</td>

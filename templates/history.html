@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shipping Plan History - {{ plan.company_name }}</title>
+    <title>Shipping Plan History - {{ plan.from_site }}</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -127,8 +127,8 @@
             <h3>Current Shipping Plan Information</h3>
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">Company Name</div>
-                    <div class="info-value">{{ plan.company_name }}</div>
+                    <div class="info-label">From Site</div>
+                    <div class="info-value">{{ plan.from_site }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Destination</div>
@@ -169,8 +169,8 @@
                 <tr>
                     <td class="timestamp">{{ record.changed_at }}</td>
                     <td>
-                        {% if record.field_name == 'company_name' %}
-                            Company Name
+                        {% if record.field_name == 'from_site' %}
+                            From Site
                         {% elif record.field_name == 'to_site' %}
                             Destination
                         {% elif record.field_name == 'shipping_week' %}

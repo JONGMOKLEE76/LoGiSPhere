@@ -94,9 +94,9 @@ def dashboard():
     # 검색 조건이 있는지 확인 (실제 필터 값이 있는지)
     has_search_conditions = bool(supplier_filter or week_from or week_to)
     
-    # Supplier 목록 조회 (드롭다운용) - SP의 company_name과 PO의 from_site를 합침
+    # Supplier 목록 조회 (드롭다운용) - SP의 from_site와 PO의 from_site를 합침
     sp_suppliers = conn.execute('''
-        SELECT DISTINCT company_name as supplier_name
+        SELECT DISTINCT from_site as supplier_name
         FROM shipping_plans 
         WHERE is_deleted = FALSE
     ''').fetchall()
@@ -124,7 +124,7 @@ def dashboard():
     sp_params = []
     
     if supplier_filter:
-        sp_conditions.append("company_name = ?")
+        sp_conditions.append("from_site = ?")
         sp_params.append(supplier_filter)
     
     if week_from:
@@ -139,7 +139,7 @@ def dashboard():
     
     # Shipment Plans 데이터 조회
     shipment_plans = conn.execute(f'''
-        SELECT company_name, to_site, model_name, shipping_week, shipping_quantity 
+        SELECT from_site, to_site, model_name, shipping_week, shipping_quantity 
         FROM shipping_plans 
         WHERE {sp_where_clause}
     ''', sp_params).fetchall()
@@ -153,31 +153,21 @@ def dashboard():
         po_conditions.append("from_site = ?")
         po_params.append(supplier_filter)
     
-    # Purchase Orders 데이터 조회
-    try:
-        purchase_orders = conn.execute(f'''
-            SELECT po_number, from_site, to_site, model, po_qty, rsd, status 
-            FROM purchase_orders 
-            WHERE {" AND ".join(po_conditions)}
-        ''', po_params).fetchall()
-    except sqlite3.OperationalError:
-        purchase_orders = []
+    # Week 범위를 날짜로 변환하여 SQL에서 직접 처리
+    if week_from:
+        po_conditions.append("rsd >= ?")
+        po_params.append(week_from[:10])  # yyyy-mm-dd 부분만 추출
     
-    # PO 데이터 필터링 (Python에서 Week 범위 체크)
-    if week_from or week_to:
-        filtered_po = []
-        for po in purchase_orders:
-            po_week = convert_date_to_week_format(po['rsd'])
-            if po_week:
-                # Week 범위 체크
-                include_po = True
-                if week_from and po_week < week_from:
-                    include_po = False
-                if week_to and po_week > week_to:
-                    include_po = False
-                if include_po:
-                    filtered_po.append(po)
-        purchase_orders = filtered_po
+    if week_to:
+        po_conditions.append("rsd <= ?")
+        po_params.append(week_to[:10])   # yyyy-mm-dd 부분만 추출
+    
+    # Purchase Orders 데이터 조회 - try-except 제거
+    purchase_orders = conn.execute(f'''
+        SELECT po_number, from_site, to_site, model, po_qty, rsd, status 
+        FROM purchase_orders 
+        WHERE {" AND ".join(po_conditions)}
+    ''', po_params).fetchall()
     
     conn.close()
     
@@ -239,7 +229,7 @@ def create_pivot_table(shipment_plans, purchase_orders):
         
         pivot[to_site][week]['sp'] += quantity
         pivot[to_site][week]['details']['sp'].append({
-            'company_name': plan['company_name'],
+            'from_site': plan['from_site'],
             'model_name': plan['model_name'],
             'quantity': quantity,
             'week': week
@@ -320,7 +310,7 @@ def create_pivot_table(shipment_plans, purchase_orders):
 @app.route('/add_shipment', methods=['POST'])
 def add_shipment():
     """새로운 선적계획 추가 (Shipment 페이지용)"""
-    company_name = request.form['company_name'].strip()
+    from_site = request.form['from_site'].strip()
     to_site = request.form['to_site'].strip()
     model_name = request.form['model_name'].strip()
     shipping_week_date = request.form['shipping_week_date']
@@ -332,9 +322,9 @@ def add_shipment():
     
     conn = get_db_connection()
     cursor = conn.execute('''
-        INSERT INTO shipping_plans (company_name, to_site, model_name, shipping_week, shipping_quantity, remark)
+        INSERT INTO shipping_plans (from_site, to_site, model_name, shipping_week, shipping_quantity, remark)
         VALUES (?, ?, ?, ?, ?, ?)
-    ''', (company_name, to_site, model_name, shipping_week, shipping_quantity, remark))
+    ''', (from_site, to_site, model_name, shipping_week, shipping_quantity, remark))
     
     plan_id = cursor.lastrowid
     conn.commit()
@@ -347,7 +337,7 @@ def add_shipment():
 @app.route('/update/<int:id>', methods=['POST'])
 def update_plan(id):
     """선적계획 수정"""
-    company_name = request.form['company_name']
+    from_site = request.form['from_site']
     to_site = request.form['to_site']
     model_name = request.form['model_name']
     
@@ -368,15 +358,15 @@ def update_plan(id):
     # 데이터 업데이트
     conn.execute('''
         UPDATE shipping_plans 
-        SET company_name = ?, to_site = ?, model_name = ?, shipping_week = ?, shipping_quantity = ?, remark = ?, updated_at = (datetime(\'now\', \'localtime\'))
+        SET from_site = ?, to_site = ?, model_name = ?, shipping_week = ?, shipping_quantity = ?, remark = ?, updated_at = (datetime(\'now\', \'localtime\'))
         WHERE id = ?
-    ''', (company_name, to_site, model_name, shipping_week, shipping_quantity, remark, id))
+    ''', (from_site, to_site, model_name, shipping_week, shipping_quantity, remark, id))
     conn.commit()
     conn.close()
     
     # 변경된 필드 히스토리 기록
-    if old_data['company_name'] != company_name:
-        log_history(id, 'company_name', old_data['company_name'], company_name)
+    if old_data['from_site'] != from_site:
+        log_history(id, 'from_site', old_data['from_site'], from_site)
     if old_data['to_site'] != to_site:
         log_history(id, 'to_site', old_data['to_site'], to_site)
     if old_data['model_name'] != model_name:
@@ -440,15 +430,11 @@ def shipment():
 def po():
     """PO page - Show purchase orders"""
     conn = get_db_connection()
-    try:
-        pos = conn.execute('''
-            SELECT * FROM purchase_orders 
-            WHERE status = 'Active' 
-            ORDER BY id DESC
-        ''').fetchall()
-    except sqlite3.OperationalError:
-        # If PO table doesn't exist, return empty list
-        pos = []
+    pos = conn.execute('''
+        SELECT * FROM purchase_orders 
+        WHERE status = 'Active' 
+        ORDER BY id DESC
+    ''').fetchall()
     conn.close()
     return render_template('po.html', pos=pos)
 
@@ -472,42 +458,17 @@ def add_po():
         conn.commit()
     except sqlite3.IntegrityError as e:
         # 에러 발생 시에도 기존 PO 목록을 함께 전달
-        try:
-            pos = conn.execute('''
-                SELECT * FROM purchase_orders 
-                WHERE status = 'Active' 
-                ORDER BY id DESC
-            ''').fetchall()
-        except:
-            pos = []
+        pos = conn.execute('''
+            SELECT * FROM purchase_orders 
+            WHERE status = 'Active' 
+            ORDER BY id DESC
+        ''').fetchall()
         conn.close()
         
         if 'UNIQUE constraint failed' in str(e):
             return render_template('po.html', pos=pos, error='PO Number already exists! Please use a different PO number.')
         else:
             return render_template('po.html', pos=pos, error='Database error occurred.')
-    except sqlite3.OperationalError as e:
-        # If table doesn't exist, create it first
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS purchase_orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                po_number TEXT NOT NULL UNIQUE,
-                from_site TEXT NOT NULL,
-                to_site TEXT NOT NULL,
-                model TEXT NOT NULL,
-                po_qty INTEGER NOT NULL,
-                rsd DATE NOT NULL CHECK (rsd IS date(rsd)),
-                remark TEXT CHECK (LENGTH(remark) <= 100),
-                created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
-                last_update TIMESTAMP DEFAULT (datetime('now', 'localtime')),
-                status TEXT DEFAULT 'Active'
-            )
-        ''')
-        cursor = conn.execute('''
-            INSERT INTO purchase_orders (po_number, from_site, to_site, model, po_qty, rsd, remark)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (po_number, from_site, to_site, model, po_qty, rsd, remark))
-        conn.commit()
     conn.close()
     
     return redirect(url_for('po'))
@@ -579,15 +540,11 @@ def po_history(id):
     po = conn.execute('SELECT * FROM purchase_orders WHERE id = ?', (id,)).fetchone()
     
     # PO history information
-    try:
-        history = conn.execute('''
-            SELECT * FROM purchase_orders_history 
-            WHERE po_id = ? 
-            ORDER BY changed_at DESC
-        ''', (id,)).fetchall()
-    except sqlite3.OperationalError:
-        # If PO history table doesn't exist, return empty list
-        history = []
+    history = conn.execute('''
+        SELECT * FROM purchase_orders_history 
+        WHERE po_id = ? 
+        ORDER BY changed_at DESC
+    ''', (id,)).fetchall()
     
     conn.close()
     return render_template('po_history.html', po=po, history=history)
