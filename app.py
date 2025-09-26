@@ -28,7 +28,7 @@ def get_db_connection():
             host=os.getenv("host"),
             port=os.getenv("port"),
             database=os.getenv("dbname"),
-            # sslmode="require",
+            sslmode="require",
             cursor_factory=RealDictCursor
         )
         return conn
