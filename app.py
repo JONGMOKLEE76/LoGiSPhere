@@ -28,7 +28,7 @@ def get_db_connection():
             host=os.getenv("host"),
             port=os.getenv("port"),
             database=os.getenv("dbname"),
-            sslmode="require",
+            # sslmode="require",
             cursor_factory=RealDictCursor
         )
         return conn
@@ -45,13 +45,10 @@ def convert_date_to_week_format(date_string):
         return ""
     
     try:
-        # 입력 날짜 파싱
-        selected_date = datetime.strptime(date_string, '%Y-%m-%d')
-        
         # 해당 주의 월요일 찾기
-        days_since_monday = selected_date.weekday()  # 0=Monday, 6=Sunday
-        monday = selected_date - timedelta(days=days_since_monday)
-        
+        days_since_monday = date_string.weekday()  # 0=Monday, 6=Sunday
+        monday = date_string - timedelta(days=days_since_monday)
+
         # 주차 계산 (ISO week)
         year = monday.year
         week_number = monday.isocalendar()[1]
@@ -376,6 +373,7 @@ def create_pivot_table(shipment_plans, purchase_orders):
     for po in purchase_orders:
         to_site = po['to_site']  # 정규화 제거
         rsd = po['rsd']
+        print(rsd, type(rsd))
         quantity = po['po_qty']
         
         # RSD를 Week 형식으로 변환
