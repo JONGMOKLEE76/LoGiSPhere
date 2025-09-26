@@ -16,6 +16,12 @@ app.secret_key = 'b7f2e8c1-4a2d-4e9a-9c3e-8f1d2a7b6c5e'  # 안전한 랜덤 문�
 def get_db_connection():
     """Supabase PostgreSQL 연결 반환"""
     try:
+        # 환경변수 값 디버깅 출력
+        print("user:", os.getenv("user"))
+        print("password:", os.getenv("password"))
+        print("host:", os.getenv("host"))
+        print("port:", os.getenv("port"))
+        print("dbname:", os.getenv("dbname"))
         conn = psycopg2.connect(
             user=os.getenv("user"),
             password=os.getenv("password"),
@@ -735,4 +741,4 @@ def update_user(user_id):
     return jsonify({'success': True})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
