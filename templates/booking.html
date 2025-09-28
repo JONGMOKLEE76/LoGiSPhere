@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking - LoGi-SPhere</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        .header .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .header .nav-link:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 120px);
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            color: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-menu li {
+            border-bottom: 1px solid #34495e;
+        }
+        .sidebar-menu a {
+            display: block;
+            padding: 20px 25px;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .sidebar-menu a:hover {
+            background-color: #3498db;
+            padding-left: 35px;
+        }
+        .sidebar-menu a.active {
+            background-color: #3498db;
+            border-left: 4px solid #fff;
+        }
+        .container {
+            flex: 1;
+            background-color: white;
+            padding: 30px;
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .search-filter {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .filter-group label {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        .search-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            align-self: flex-end;
+        }
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .reset-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            align-self: flex-end;
+        }
+        .reset-btn:hover {
+            background: #5a6268;
+        }
+        .under {
+            color: #888;
+            font-size: 1.4em;
+            margin-top: 40px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        #start-booking-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 1.3em;
+            font-weight: bold;
+            padding: 18px 48px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(102,126,234,0.18);
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📖 Booking</h1>
+        {% if user_info %}
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="/static/avatars/{{ user_info.avatar }}" alt="avatar" style="width:36px;height:36px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.12);">
+            <span style="font-size:1.1em;font-weight:500;">Hi, {{ user_info.username }}</span>
+            <a href="/logout" class="nav-link" style="background:#e74c3c;">Logout</a>
+        </div>
+        {% endif %}
+    </div>
+    <div class="main-container">
+        <nav class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="/" id="home-link">🏠 Home</a></li>
+                <li><a href="/dashboard" id="dashboard-link">📊 Dashboard</a></li>
+                <li><a href="/shipment" id="shipment-link">📦 Shipment</a></li>
+                <li><a href="/po" id="po-link">📋 Purchase Orders</a></li>
+                <li><a href="/booking" id="booking-link" class="active">📖 Booking</a></li>
+                {% if user_info and user_info.is_admin == 1 %}
+                <li><a href="/users" id="users-link">👤 User Management</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        <div class="container">
+        <h2>Booking Management</h2>
+        <!-- Search Filter Form -->
+        <div class="search-filter">
+            <form method="GET" action="{{ url_for('booking') }}">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="supplier">Supplier:</label>
+                        <select name="supplier" id="supplier">
+                            {% for supplier in suppliers %}
+                                {% if supplier == 'All' %}
+                                    <option value="" {% if request.args.get('supplier', '') == '' %}selected{% endif %}>All</option>
+                                {% else %}
+                                    <option value="{{ supplier }}" {% if request.args.get('supplier') == supplier %}selected{% endif %}>{{ supplier }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="to_site">To Site:</label>
+                        <input type="text" name="to_site" id="to_site" placeholder="To Site" value="{{ request.args.get('to_site', '') }}">
+                    </div>
+                    <div class="filter-group">
+                        <label for="week_from">Week From:</label>
+                        <input type="text" name="week_from" id="week_from" placeholder="YYYY-MM-DD(W00)" value="{{ week_from or default_weekname }}">
+                    </div>
+                    <div class="filter-group">
+                        <label for="week_to">Week To:</label>
+                        <input type="text" name="week_to" id="week_to" placeholder="YYYY-MM-DD(W00)" value="{{ week_to or default_weekname_to }}">
+                    </div>
+                    <button type="submit" class="search-btn">Search</button>
+                    <a href="{{ url_for('booking') }}" class="reset-btn" style="text-decoration: none; display: inline-block; text-align: center;">Reset</a>
+                </div>
+            </form>
+        </div>
+        {% if search_executed %}
+            <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700&display=swap" rel="stylesheet">
+            <div style="
+                font-family: 'Noto Sans KR', 'Segoe UI', Arial, sans-serif;
+                font-size: 0.98em;
+                color: #2c3556;
+                background: #f3f7ff;
+                border-left: 5px solid #667eea;
+                border-radius: 7px;
+                padding: 10px 18px;
+                margin-bottom: 14px;
+                width: 100%;
+                box-shadow: 0 2px 8px rgba(102,126,234,0.07);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+            ">
+                <span style="font-size:1.2em;">🤗</span>
+                <span>Please select the shipping plan(s) you want to book.</span>
+            </div>
+            <!-- Shipping Plan List Table -->
+            <table id="plans-table">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="select-all"></th>
+                        <th>From Site</th>
+                        <th>To Site</th>
+                        <th>Model Name</th>
+                        <th>Shipping Week</th>
+                        <th>Shipping Quantity</th>
+                        <th>PO Number</th>
+                        <th>PO Qty</th>
+                        <th>Remark</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if plans and plans|length > 0 %}
+                        {% for plan in plans %}
+                        <tr>
+                            <td><input type="checkbox" name="select_plan" value="{{ plan.id }}" class="row-checkbox" data-from-site="{{ plan.from_site }}" data-to-site="{{ plan.to_site }}" data-model="{{ plan.model_name }}" data-plan-qty="{{ plan.shipping_quantity }}" data-po-number="{{ plan.po_number }}" data-po-qty="{{ plan.po_qty }}"></td>
+                            <td>{{ plan.from_site }}</td>
+                            <td>{{ plan.to_site }}</td>
+                            <td>{{ plan.model_name }}</td>
+                            <td>{{ plan.shipping_week }}</td>
+                            <td>{{ plan.shipping_quantity }}</td>
+                            <td>{{ plan.po_number }}</td>
+                            <td>{{ plan.po_qty }}</td>
+                            <td>{{ plan.remark or '' }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="9" style="text-align:center; color:#888;">No results found.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            <div style="display: flex; flex-direction: column; align-items: center; margin-top: 32px;">
+                <button id="start-booking-btn" style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    font-size: 1.3em;
+                    font-weight: bold;
+                    padding: 18px 48px;
+                    border: none;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 12px rgba(102,126,234,0.18);
+                    cursor: pointer;
+                    transition: background 0.3s, transform 0.2s;
+                    margin-top: 8px;">
+                    🚢 Start Booking
+                </button>
+                <div id="booking-form-outer" style="
+                    display: none;
+                    border: 2.5px solid #667eea;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 16px rgba(102,126,234,0.10);
+                    background: #f8faff;
+                    padding: 32px 28px 28px 28px;
+                    margin: 32px auto 0 auto;
+                    max-width: 760px;
+                    width: 100%;
+                ">
+                    <div id="booking-form-area" style="display:block; width:100%; max-width:700px; margin:0 auto;">
+                        <div style="
+                            font-family: 'Noto Sans KR', 'Segoe UI', Arial, sans-serif;
+                            font-size: 1.05em;
+                            color: #2c3556;
+                            background: #f3f7ff;
+                            border-left: 5px solid #667eea;
+                            border-radius: 7px;
+                            padding: 10px 18px;
+                            margin-bottom: 18px;
+                            width: 100%;
+                            box-shadow: 0 2px 8px rgba(102,126,234,0.07);
+                            font-weight: 700;
+                            letter-spacing: 0.01em;
+                        ">
+                            Please complete the booking request information and send it to the logistics manager.
+                        </div>
+                        <div style="background: #fff; border: 1.5px solid #bfc7d1; border-radius: 6px; box-shadow: 0 2px 8px rgba(102,126,234,0.07); padding: 0; margin-bottom: 18px; max-width: 700px; width: 100%;">
+                            <div style="text-align: center; font-size: 1.18em; font-weight: 700; color: #2c3556; border-bottom: 2px solid #bfc7d1; padding: 18px 0 12px 0; background: #f7fafd;">
+                                1. Basic Information
+                            </div>
+                            <form id="booking-basic-form">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 1em;">
+                                <tr>
+                                    <td style="width: 160px; font-weight: 600; background: #f7fafd; border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">Shipper</td>
+                                    <td style="border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">
+                                        <input type="text" id="shipper" name="shipper" class="booking-input" style="width: 100%; border: 1px solid #bfc7d1; border-radius: 4px; padding: 7px;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; background: #f7fafd; border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">Shipping Week</td>
+                                    <td style="border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">
+                                        <input type="text" id="shipping_week" name="shipping_week" class="booking-input" style="width: 100%; border: 1px solid #bfc7d1; border-radius: 4px; padding: 7px;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; background: #f7fafd; border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">To Site</td>
+                                    <td style="border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">
+                                        <input type="text" id="to_site_basic" name="to_site" class="booking-input" style="width: 100%; border: 1px solid #bfc7d1; border-radius: 4px; padding: 7px;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; background: #f7fafd; border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">Final Destination</td>
+                                    <td style="border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">
+                                        <input type="text" id="final_destination" name="final_destination" class="booking-input" style="width: 100%; border: 1px solid #bfc7d1; border-radius: 4px; padding: 7px;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; background: #f7fafd; border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">Consignee</td>
+                                    <td style="border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">
+                                        <textarea id="consignee" name="consignee" class="booking-input" style="width: 100%; border: 1px solid #bfc7d1; border-radius: 4px; padding: 7px; min-height: 48px;"></textarea>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; background: #f7fafd; border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">Notify</td>
+                                    <td style="border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">
+                                        <textarea id="notify" name="notify" class="booking-input" style="width: 100%; border: 1px solid #bfc7d1; border-radius: 4px; padding: 7px; min-height: 48px;"></textarea>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; background: #f7fafd; border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">CRD (Cargo Ready Date)</td>
+                                    <td style="border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">
+                                        <input type="date" id="crd" name="crd" class="booking-input" style="width: 100%; border: 1px solid #bfc7d1; border-radius: 4px; padding: 7px;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; background: #f7fafd; padding: 10px 14px;">POL</td>
+                                    <td style="padding: 10px 14px;">
+                                        <input type="text" id="pol" name="pol" class="booking-input" style="width: 100%; border: 1px solid #bfc7d1; border-radius: 4px; padding: 7px;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; background: #f7fafd; border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">Transport Mode</td>
+                                    <td style="border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">
+                                        <select id="transport_mode" name="transport_mode" class="booking-input" style="width: 100%; border: 1px solid #bfc7d1; border-radius: 4px; padding: 7px;">
+                                            <option value="Sea">Sea</option>
+                                            <option value="Rail">Rail</option>
+                                            <option value="Truck">Truck</option>
+                                            <option value="Air">Air</option>
+                                            <option value="Others">Others</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            </table>
+                            </form>
+                        </div>
+                        <!-- 2. Cargo Information -->
+                        <div style="background: #fff; border: 1.5px solid #bfc7d1; border-radius: 6px; box-shadow: 0 2px 8px rgba(102,126,234,0.07); padding: 0; margin-bottom: 18px; max-width: 700px; width: 100%;">
+                            <div style="text-align: center; font-size: 1.18em; font-weight: 700; color: #2c3556; border-bottom: 2px solid #bfc7d1; padding: 18px 0 12px 0; background: #f7fafd;">
+                                2. Cargo Information
+                            </div>
+                            <div style="padding: 18px 24px 24px 24px;">
+                                <button type="button" id="add-container-btn" style="background: #667eea; color: #fff; border: none; border-radius: 5px; padding: 8px 18px; font-weight: 600; font-size: 1em; margin-bottom: 18px; cursor: pointer;">Add Container</button>
+                                <div id="container-list">
+                                    <!-- Container input areas will be added here -->
+                                </div>
+                            </div>
+                        </div>
+                        <!-- // 2. Item Information -->
+                        <!-- 추후 booking 입력 폼 영역 -->
+                    </div>
+                </div>
+            </div>
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const selectAll = document.getElementById('select-all');
+                const checkboxes = document.querySelectorAll('.row-checkbox');
+                if (selectAll) {
+                    selectAll.addEventListener('change', function() {
+                        checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
+                    });
+                }
+                // Start Booking 버튼 클릭 시 booking-form-area 표시, 체크 없으면 경고
+                const startBtn = document.getElementById('start-booking-btn');
+                const formOuter = document.getElementById('booking-form-outer');
+                const formArea = document.getElementById('booking-form-area');
+                if (startBtn && formArea) {
+                    startBtn.addEventListener('click', function() {
+                        const checkedRows = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+                        if (checkedRows.length === 0) {
+                            alert('Please select shipping plans first!');
+                            return;
+                        }
+                        // from site, to site 값 수집 (data-from-site, data-to-site 속성 필요)
+                        const fromSites = checkedRows.map(cb => cb.getAttribute('data-from-site'));
+                        const toSites = checkedRows.map(cb => cb.getAttribute('data-to-site'));
+                        const uniqueFrom = Array.from(new Set(fromSites.filter(Boolean)));
+                        const uniqueTo = Array.from(new Set(toSites.filter(Boolean)));
+                        if (uniqueFrom.length !== 1 || uniqueTo.length !== 1) {
+                            alert('Selected shipping plans must have the same From Site and To Site.');
+                            return;
+                        }
+                        // 기본값 입력
+                        const shipperInput = document.getElementById('shipper');
+                        const toSiteInput = document.getElementById('to_site_basic');
+                        if (shipperInput) shipperInput.value = uniqueFrom[0] || '';
+                        if (toSiteInput) toSiteInput.value = uniqueTo[0] || '';
+                        formOuter.style.display = 'block';
+                        formOuter.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                }
+            });
+            </script>
+            <script>
+                        function createContainerBlock(containerIdx, items) {
+                            // items: array of {model, plan_qty, po_number, po_qty}
+                            let tableRows = items.map(item => `
+                                <tr>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed;'>${item.model}</td>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed; text-align:right;'>${item.plan_qty}</td>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed;'>${item.po_number ?? '-'}</td>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed; text-align:right;'>${item.po_qty ?? '-'}</td>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed;'><input type="number" min="0" class="container-qty-input" name="container_${containerIdx}_model_${item.model}" style="width:80px; padding:4px 6px; border:1px solid #bfc7d1; border-radius:4px;"></td>
+                                </tr>
+                            `).join('');
+                            return `
+                                <div class="container-block" id="container-block-${containerIdx}" style="position:relative; border:1.5px solid #a3b0c7; border-radius:7px; margin-bottom:22px; background:#fafdff; box-shadow:0 1px 4px rgba(102,126,234,0.06);">
+                                    <button type="button" class="remove-container-btn" data-target="container-block-${containerIdx}" style="position:absolute; top:10px; right:10px; background:#e53e3e; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-size:1.1em; font-weight:bold; cursor:pointer;">&times;</button>
+                                    <div style="display:flex; align-items:center; gap:18px; padding:16px 18px 0 18px;">
+                                        <span style="font-weight:600; color:#2c3556;">Container Type:</span>
+                                        <select name="container_type_${containerIdx}" style="padding:6px 14px; border-radius:4px; border:1px solid #bfc7d1; font-size:1em;">
+                                            <option value="40HC">40HC</option>
+                                            <option value="40FT">40FT</option>
+                                            <option value="20FT">20FT</option>
+                                            <option value="LCL">LCL</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div style="padding:10px 18px 18px 18px;">
+                                        <table style="width:100%; border-collapse:collapse; font-size:1em; margin-top:12px;">
+                                            <thead>
+                                                <tr style="background:#f3f7ff;">
+                                                    <th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">Model</th>
+                                                    <th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">Plan Qty</th>
+                                                    <th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">PO Number</th>
+                                                    <th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">PO Qty</th>
+                                                    <th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">Qty in this Container</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${tableRows}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        // 샘플 데이터: 실제로는 체크된 선적계획에서 가져와야 함
+                        const sampleItems = [
+                            {model: 'ModelA', plan_qty: 100, po_number: 'PO12345', po_qty: 80},
+                            {model: 'ModelB', plan_qty: 50, po_number: null, po_qty: null}
+                        ];
+                        let containerCount = 0;
+                        document.getElementById('add-container-btn').addEventListener('click', function() {
+                            containerCount++;
+                            // 체크된 row에서 정보 추출
+                            const checkedRows = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+                            // 모델별 원래 계획수량/PO수량/PO번호/모델명 추출
+                            let items = checkedRows.map(cb => {
+                                return {
+                                    model: cb.getAttribute('data-model') || '-',
+                                    plan_qty: parseInt(cb.getAttribute('data-plan-qty')) || 0,
+                                    po_number: cb.getAttribute('data-po-number') || '-',
+                                    po_qty: cb.getAttribute('data-po-qty') || '-',
+                                    model_key: cb.getAttribute('data-model') + '|' + (cb.getAttribute('data-po-number') || '-')
+                                };
+                            });
+                            if (items.length === 0) {
+                                alert('Please select shipping plans first!');
+                                return;
+                            }
+                            // 이전 컨테이너 입력값 합산 (모델+PO별)
+                            const prevQtyMap = {};
+                            document.querySelectorAll('.container-block').forEach(block => {
+                                items.forEach(item => {
+                                    const key = item.model_key;
+                                    const input = block.querySelector(`input[name^='container_'][name$='_model_${CSS.escape(item.model)}']`);
+                                    if (input) {
+                                        prevQtyMap[key] = (prevQtyMap[key] || 0) + (parseInt(input.value) || 0);
+                                    }
+                                });
+                            });
+                            // 남은 수량 계산
+                            let itemsWithRemain = items.map(item => {
+                                const key = item.model_key;
+                                const used = prevQtyMap[key] || 0;
+                                return {
+                                    ...item,
+                                    plan_qty: Math.max(item.plan_qty - used, 0),
+                                    // PO수량도 숫자면 차감, 아니면 그대로
+                                    po_qty: (item.po_qty && !isNaN(parseInt(item.po_qty))) ? Math.max(parseInt(item.po_qty) - used, 0) : item.po_qty
+                                };
+                            });
+                            const html = createContainerBlock(containerCount, itemsWithRemain);
+                            document.getElementById('container-list').insertAdjacentHTML('beforeend', html);
+                            // Remove 버튼 이벤트 바인딩
+                            setTimeout(() => {
+                                document.querySelectorAll('.remove-container-btn').forEach(btn => {
+                                    btn.onclick = function() {
+                                        const targetId = btn.getAttribute('data-target');
+                                        const block = document.getElementById(targetId);
+                                        if (block) block.remove();
+                                    };
+                                });
+                            }, 10);
+                        });
+            </script>
+            <script>
+                        // Save 버튼 및 결과 표시 영역 추가
+                        if (!document.getElementById('save-booking-btn')) {
+                            const saveBtn = document.createElement('button');
+                            saveBtn.id = 'save-booking-btn';
+                            saveBtn.type = 'button';
+                            saveBtn.textContent = 'Save';
+                            saveBtn.style = 'background: #667eea; color: #fff; border: none; border-radius: 5px; padding: 10px 32px; font-weight: 600; font-size: 1.1em; margin: 18px 0 0 0; cursor: pointer; display: block;';
+                            document.getElementById('container-list').parentElement.appendChild(saveBtn);
+                            const resultDiv = document.createElement('div');
+                            resultDiv.id = 'booking-result-area';
+                            resultDiv.style = 'margin-top: 32px;';
+                            document.getElementById('container-list').parentElement.appendChild(resultDiv);
+                        }
+                        document.getElementById('save-booking-btn').onclick = function() {
+                            // 1. 입력값 비활성화 및 x버튼 숨김
+                            document.querySelectorAll('.container-block').forEach(block => {
+                                // 컨테이너 타입 select
+                                const select = block.querySelector('select[name^="container_type_"]');
+                                if (select) select.disabled = true;
+                                // 모델별 수량 input
+                                block.querySelectorAll('input[type="number"]').forEach(input => { input.disabled = true; });
+                                // x 버튼 숨김
+                                const xBtn = block.querySelector('.remove-container-btn');
+                                if (xBtn) xBtn.style.display = 'none';
+                            });
+                            // Save 버튼 숨기고 Edit 버튼 표시
+                            let editBtn = document.getElementById('edit-booking-btn');
+                            if (!editBtn) {
+                                editBtn = document.createElement('button');
+                                editBtn.id = 'edit-booking-btn';
+                                editBtn.type = 'button';
+                                editBtn.textContent = 'Edit';
+                                editBtn.style = 'background: #e53e3e; color: #fff; border: none; border-radius: 5px; padding: 10px 32px; font-weight: 600; font-size: 1.1em; margin: 18px 0 0 0; cursor: pointer; display: block;';
+                                document.getElementById('save-booking-btn').parentElement.appendChild(editBtn);
+                            } else {
+                                editBtn.style.display = 'block';
+                            }
+                            document.getElementById('save-booking-btn').style.display = 'none';
+
+                            // 2. 결과 테이블/summary 표시 (기존 코드)
+                            const summary = {};
+                            document.querySelectorAll('.container-block').forEach(block => {
+                                block.querySelectorAll('tbody tr').forEach(tr => {
+                                    const tds = tr.querySelectorAll('td');
+                                    const model = tds[0].textContent.trim();
+                                    const planQty = parseInt(tds[1].textContent.trim()) || 0;
+                                    const poNumber = tds[2].textContent.trim();
+                                    const poQty = tds[3].textContent.trim();
+                                    const qtyInput = tds[4].querySelector('input');
+                                    const qty = parseInt(qtyInput.value) || 0;
+                                    const key = model + '|' + poNumber;
+                                    if (!summary[key]) {
+                                        summary[key] = { model, poNumber, planQty, poQty, total: 0 };
+                                    }
+                                    summary[key].total += qty;
+                                });
+                            });
+                            const containerTypeCount = {};
+                            document.querySelectorAll('.container-block').forEach(block => {
+                                const select = block.querySelector('select[name^="container_type_"]');
+                                if (select) {
+                                    const type = select.value;
+                                    containerTypeCount[type] = (containerTypeCount[type] || 0) + 1;
+                                }
+                            });
+                            let html = '<div style="font-weight:700; color:#2c3556; margin-bottom:12px;">Please check the final result below.</div>';
+                            html += '<table style="width:100%; border-collapse:collapse; font-size:1em; background:#fff; box-shadow:0 1px 4px rgba(102,126,234,0.06);">';
+                            html += '<thead><tr style="background:#f3f7ff;">';
+                            html += '<th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">Model</th>';
+                            html += '<th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">PO Number</th>';
+                            html += '<th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">Plan Qty</th>';
+                            html += '<th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">PO Qty</th>';
+                            html += '<th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">Total Entered</th>';
+                            html += '<th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">Plan Diff</th>';
+                            html += '<th style="padding:8px 10px; border-bottom:2px solid #bfc7d1;">PO Diff</th>';
+                            html += '</tr></thead><tbody>';
+                            Object.values(summary).forEach(row => {
+                                const planDiff = row.total - row.planQty;
+                                const poDiff = (row.poQty && !isNaN(parseInt(row.poQty))) ? (row.total - parseInt(row.poQty)) : '-';
+                                html += `<tr>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed;'>${row.model}</td>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed;'>${row.poNumber}</td>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed; text-align:right;'>${row.planQty}</td>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed; text-align:right;'>${row.poQty}</td>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed; text-align:right;'>${row.total}</td>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed; text-align:right; color:${planDiff===0?'#2c7a7b':(planDiff>0?'#e53e3e':'#3182ce')};'>${planDiff>0?'+':''}${planDiff}</td>
+                                    <td style='padding:8px 10px; border-bottom:1px solid #e0e6ed; text-align:right; color:${poDiff==='-'?'#888':(poDiff==0?'#2c7a7b':(poDiff>0?'#e53e3e':'#3182ce'))};'>${poDiff!=='-'&&(poDiff>0?'+':'')}${poDiff}</td>
+                                </tr>`;
+                            });
+                            html += '</tbody></table>';
+                            const filteredTypes = Object.entries(containerTypeCount).filter(([type, count]) => count > 0);
+                            if (filteredTypes.length > 0) {
+                                html += '<div style="margin:22px 0 0 0; font-weight:700; color:#2c3556; font-size:1.15em;">Container Type Summary</div>';
+                                html += '<ul style="margin:8px 0 0 0; padding:0 0 0 18px; font-size:1.08em; color:#2c3556;">';
+                                filteredTypes.forEach(([type, count]) => {
+                                    html += `<li style="margin-bottom:2px;"><span style="font-weight:700; color:#2c3556;">${type}</span>: <span style="font-weight:600; color:#2c3556;">${count}</span></li>`;
+                                });
+                                html += '</ul>';
+                            }
+                            document.getElementById('booking-result-area').innerHTML = html;
+
+                            // 3. Booking Request Form 영역을 Save 클릭 시에만 동적으로 생성/append (기존 코드)
+                            let bookingFormDiv = document.getElementById('booking-request-form-area');
+                            if (!bookingFormDiv) {
+                                bookingFormDiv = document.createElement('div');
+                                bookingFormDiv.id = 'booking-request-form-area';
+                                bookingFormDiv.style = 'display:block; margin-top:32px;';
+                                bookingFormDiv.innerHTML = `
+                                    <div style="background: #fff; border: 1.5px solid #bfc7d1; border-radius: 6px; box-shadow: 0 2px 8px rgba(102,126,234,0.07); padding: 0; margin-bottom: 18px; max-width: 700px; width: 100%; margin-left:auto; margin-right:auto;">
+                                        <div style="text-align: center; font-size: 1.18em; font-weight: 700; color: #2c3556; border-bottom: 2px solid #bfc7d1; padding: 18px 0 12px 0; background: #f7fafd;">
+                                            3. Booking Request
+                                        </div>
+                                        <form id="booking-request-form" style="padding: 18px 24px 24px 24px;">
+                                            <table style="width: 100%; border-collapse: collapse; font-size: 1em;">
+                                                <tr>
+                                                    <td style="width: 160px; font-weight: 600; background: #f7fafd; border-bottom: 1px solid #e0e6ed; padding: 10px 14px; vertical-align:top;">To. Logistics Contact</td>
+                                                    <td style="border-bottom: 1px solid #e0e6ed; padding: 10px 14px;">
+                                                        <div id="logistics-contact-list" style="display:flex; flex-direction:column; gap:10px;">
+                                                            {% for user in logistics_users %}
+                                                            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; border:1px solid #d1d5db; border-radius:6px; padding:7px 12px;">
+                                                                <input type="radio" name="logistics_contact" value="{{ user.id }}" style="margin-right:8px;">
+                                                                <img src="/static/avatars/{{ user.avatar }}" alt="avatar" style="width:32px;height:32px;border-radius:50%;border:1.5px solid #bfc7d1;">
+                                                                <span style="font-weight:600; color:#2c3556;">{{ user.company_name }}</span>
+                                                                <span style="color:#555;">{{ user.username }}</span>
+                                                                <span style="color:#888; font-size:0.98em;">{{ user.email }}</span>
+                                                            </label>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="font-weight: 600; background: #f7fafd; padding: 10px 14px;">Remark</td>
+                                                    <td style="padding: 10px 14px;">
+                                                        <textarea id="request_remark" name="request_remark" class="booking-input" style="width: 100%; border: 1px solid #bfc7d1; border-radius: 4px; padding: 7px; min-height: 48px;" placeholder="Please enter any special requests or information to be delivered."></textarea>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <div style="text-align:center; margin-top:32px;">
+                                                <button type="submit" id="final-submit-btn" style="font-size:2.2em; font-weight:900; color:#fff; background: linear-gradient(90deg, #ffcc00 0%, #e53e3e 100%); border:none; border-radius:12px; padding:28px 0; width:100%; max-width:520px; box-shadow:0 4px 18px rgba(229,62,62,0.13), 0 1.5px 0 #ffcc00 inset; letter-spacing:0.04em; text-shadow:1px 2px 6px #b71c1c; margin-bottom:18px; cursor:pointer;">SUBMIT</button>
+                                                <div style="font-size:1.18em; color:#e53e3e; font-weight:700; margin-top:10px; background:rgba(255,236,179,0.7); border-radius:7px; padding:12px 18px; max-width:520px; margin-left:auto; margin-right:auto;">
+                                                    Please review all the information you have entered above. If everything is correct, please submit your booking request.
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                `;
+                                const bookingFormArea = document.getElementById('booking-form-area');
+                                if (bookingFormArea) {
+                                    bookingFormArea.appendChild(bookingFormDiv);
+                                }
+                                setTimeout(() => {
+                                    const bookingRequestForm = document.getElementById('booking-request-form');
+                                    if (bookingRequestForm) {
+                                        bookingRequestForm.addEventListener('submit', function(event) {
+                                            event.preventDefault();
+                                                // 2단계: 폼 데이터 수집 및 JSON 구조화 (model, qty만)
+                                                // 1. Basic Information
+                                                const basic = {
+                                                    shipper: document.getElementById('shipper').value,
+                                                    shipping_week: document.getElementById('shipping_week').value,
+                                                    to_site: document.getElementById('to_site_basic').value,
+                                                    final_destination: document.getElementById('final_destination').value,
+                                                    consignee: document.getElementById('consignee').value,
+                                                    notify: document.getElementById('notify').value,
+                                                    crd: document.getElementById('crd').value,
+                                                    pol: document.getElementById('pol').value,
+                                                    transport_mode: document.getElementById('transport_mode').value
+                                                };
+
+                                                // 2. Cargo Information (컨테이너별, model/qty만)
+                                                const containers = [];
+                                                document.querySelectorAll('.container-block').forEach(block => {
+                                                    const type = block.querySelector('select[name^="container_type_"]').value;
+                                                    const items = [];
+                                                    block.querySelectorAll('tbody tr').forEach(tr => {
+                                                        const tds = tr.querySelectorAll('td');
+                                                        items.push({
+                                                            model: tds[0].textContent.trim(),
+                                                            qty: parseInt(tds[4].querySelector('input').value) || 0
+                                                        });
+                                                    });
+                                                    containers.push({ container_type: type, items });
+                                                });
+
+                                                // 3. Booking Request
+                                                const logistics_contact = document.querySelector('input[name="logistics_contact"]:checked')?.value || null;
+                                                const request_remark = document.getElementById('request_remark').value;
+
+                                                // 4. 최종 JSON 구조
+                                                const bookingData = {
+                                                    basic,
+                                                    containers,
+                                                    logistics_contact,
+                                                    request_remark
+                                                };
+
+                                                // (임시) 결과 확인용 콘솔 출력
+                                                console.log('bookingData:', bookingData);
+
+                                                // 3단계: fetch로 백엔드에 bookingData 전송
+                                                fetch('/add_booking', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json'
+                                                    },
+                                                    body: JSON.stringify(bookingData)
+                                                })
+                                                .then(response => response.json())
+                                                .then(data => {
+                                                    if (data.success) {
+                                                        alert('Booking 저장이 완료되었습니다!');
+                                                        // location.href = '/booking'; // 필요시 리다이렉트
+                                                    } else {
+                                                        alert('저장 실패: ' + (data.message || '알 수 없는 오류'));
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    alert('서버 통신 오류: ' + error);
+                                                });
+                                        });
+                                    }
+                                }, 100);
+                            } else {
+                                bookingFormDiv.style.display = 'block';
+                            }
+                            // Edit 버튼 이벤트 바인딩 (중복 방지)
+                            editBtn.onclick = function() {
+                                // 1. 입력값/삭제버튼 다시 활성화
+                                document.querySelectorAll('.container-block').forEach(block => {
+                                    const select = block.querySelector('select[name^="container_type_"]');
+                                    if (select) select.disabled = false;
+                                    block.querySelectorAll('input[type="number"]').forEach(input => { input.disabled = false; });
+                                    const xBtn = block.querySelector('.remove-container-btn');
+                                    if (xBtn) xBtn.style.display = 'block';
+                                });
+                                // 2. 결과 테이블/summary 삭제
+                                document.getElementById('booking-result-area').innerHTML = '';
+                                // 3. Save 버튼 다시 표시, Edit 버튼 숨김
+                                document.getElementById('save-booking-btn').style.display = 'block';
+                                editBtn.style.display = 'none';
+                            };
+                        };
+            </script>
+        {% endif %}
+    </div>
+</body>
+</html>

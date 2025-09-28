@@ -1,0 +1,26 @@
+1. Booking Requests table
+    id (PK)
+    booking_request_number : 업체명+날짜+일련번호(2자리) 로 구성 예) MOKA25092501
+    created_at : DB의 Timestamp 에서 자동할당
+    created_by (user_id, FK: users.id) : login한 유저의 username으로 자동할당
+    shipper : supplier name
+    shipping_week : request shipment week
+    to_site : destination site
+    final_destination 
+    consignee
+    notify
+    crd (cargo ready date)
+    pol : Port of Loading
+    transport_mode : Sea, Rail, Truck, Air, etc
+    logistics_contact_id (FK: users.id) : 물류담당자 정보
+    remark : 메모
+    status : 상태기록(임시저장, 요청완료, 예약완료(Confirmed), 삭제)
+2. booking Containers Table
+    id (PK)
+    booking_request_id (FK: booking_requests.id)
+    container_type
+3. booking itmes Table
+    id (PK)
+    container_id (FK: booking_containers.id)
+    model
+    qty (실제 부킹 요청 수량)

@@ -23,6 +23,8 @@ def get_connection():
         return None
 
 def init_database():
+     
+
     """Supabase PostgreSQL 데이터베이스 초기화"""
     conn = get_connection()
     if not conn:
@@ -108,20 +110,6 @@ def init_database():
         ''')
         print("shipping_plans table created successfully")
 
-        # 선적 계획 히스토리 테이블 (변경 추적)
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS shipping_plans_history (
-                history_id SERIAL PRIMARY KEY,
-                plan_id INTEGER NOT NULL,
-                field_name TEXT,
-                old_value TEXT,
-                new_value TEXT,
-                changed_at TIMESTAMPTZ DEFAULT NOW(),
-                FOREIGN KEY (plan_id) REFERENCES shipping_plans (id)
-            )
-        ''')
-        print("shipping_plans_history table created successfully")
-
         # PO 정보 테이블
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS purchase_orders (
@@ -140,20 +128,81 @@ def init_database():
         ''')
         print("purchase_orders table created successfully")
         
-        # PO 히스토리 테이블 (변경 추적)
+        # 통합 히스토리(감사) 테이블 생성
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS purchase_orders_history (
-                history_id SERIAL PRIMARY KEY,
-                po_id INTEGER NOT NULL,
-                field_name TEXT,
-                old_value TEXT,
-                new_value TEXT,
-                changed_at TIMESTAMPTZ DEFAULT NOW(),
-                FOREIGN KEY (po_id) REFERENCES purchase_orders (id)
+            CREATE TABLE IF NOT EXISTS audit_history (
+            id SERIAL PRIMARY KEY,
+            table_name TEXT NOT NULL,
+            record_id TEXT NOT NULL,
+            action TEXT NOT NULL, -- 'INSERT', 'UPDATE', 'DELETE'
+            field_name TEXT,      -- 전체 row 기록시 NULL
+            old_value TEXT,
+            new_value TEXT,
+            changed_by TEXT,
+            changed_at TIMESTAMPTZ DEFAULT NOW()
             )
+            ''')
+        print("audit_history table created successfully")
+
+        # Booking Requests Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS booking_requests (
+            id SERIAL PRIMARY KEY,
+            booking_request_number VARCHAR(32) UNIQUE NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            created_by INTEGER NOT NULL REFERENCES users(id),
+            shipper TEXT,
+            shipping_week TEXT,
+            to_site TEXT,
+            final_destination TEXT,
+            consignee TEXT,
+            notify TEXT,
+            crd DATE,
+            pol TEXT,
+            transport_mode TEXT,
+            logistics_contact_id INTEGER REFERENCES users(id),
+            remark TEXT,
+            status TEXT,
+            -- 예약 확정 정보
+            so_number TEXT,
+            pod TEXT,
+            shipping_liner TEXT,
+            vessel_name TEXT,
+            voyage TEXT,
+            cy_open_time TIMESTAMPTZ,
+            si_cut_time TIMESTAMPTZ,
+            cy_cls_time TIMESTAMPTZ,
+            etd DATE,
+            eta DATE,
+            hbl TEXT,
+            schedule_remark TEXT,
+            on_board_date DATE
+            )
+            ''')
+        print("booking_requests table created successfully")
+
+        # Booking Containers Table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS booking_containers (
+            id SERIAL PRIMARY KEY,
+            booking_request_id INTEGER NOT NULL REFERENCES booking_requests(id),
+            container_type TEXT
+        )
         ''')
-        print("purchase_orders_history table created successfully")
-        
+        print("booking_containers table created successfully")
+
+        # Booking Items Table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS booking_items (
+            id SERIAL PRIMARY KEY,
+            container_id INTEGER NOT NULL REFERENCES booking_containers(id),
+            model TEXT,
+            qty INTEGER
+        )
+        ''')
+        print("booking_items table created successfully")
+
+
         # 변경사항 커밋 - 이것이 없으면 테이블이 실제로 생성되지 않습니다!
         conn.commit()
         print("Database initialization completed successfully!")

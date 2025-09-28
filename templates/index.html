@@ -280,7 +280,8 @@
                 <li><a href="/dashboard" id="dashboard-link">📊 Dashboard</a></li>
                 <li><a href="/shipment" id="shipment-link">📦 Shipment</a></li>
                 <li><a href="/po" id="po-link">📋 Purchase Orders</a></li>
-                {% if is_admin %}
+                <li><a href="/booking" id="booking-link">📖 Booking</a></li>
+                {% if user_info and user_info.is_admin == 1 %}
                 <li><a href="/users" id="users-link">👤 User Management</a></li>
                 {% endif %}
             </ul>

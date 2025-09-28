@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shipping Plan History - {{ plan.from_site }}</title>
+    <title>Shipping Plan Audit History</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -118,11 +118,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>Shipping Plan Change History</h1>
-        
-        <a href="/" class="btn btn-secondary">← Back to List</a>
-        
+        <h1>Shipping Plan Audit History</h1>
+        <a href="/shipment" class="btn btn-secondary">← Back to List</a>
+
         <!-- Current Plan Information -->
+        {% if plan %}
         <div class="plan-info">
             <h3>Current Shipping Plan Information</h3>
             <div class="info-grid">
@@ -144,14 +144,15 @@
                 </div>
                 <div class="info-item">
                     <div class="info-label">Created Date</div>
-                    <div class="info-value">{{ plan.created_at }}</div>
+                    <div class="info-value">{{ plan.created_at_kst.strftime('%Y-%m-%d %H:%M') }} (KST)</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Last Modified</div>
-                    <div class="info-value">{{ plan.updated_at }}</div>
+                    <div class="info-value">{{ plan.updated_at_kst.strftime('%Y-%m-%d %H:%M') }} (KST)</div>
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <!-- 히스토리 테이블 -->
         {% if history %}
@@ -159,43 +160,29 @@
             <thead>
                 <tr>
                     <th>Change Date/Time</th>
+                    <th>Action</th>
                     <th>Field Name</th>
                     <th>Old Value</th>
                     <th>New Value</th>
+                    <th>Changed By</th>
                 </tr>
             </thead>
             <tbody>
                 {% for record in history %}
                 <tr>
-                    <td class="timestamp">{{ record.changed_at }}</td>
-                    <td>
-                        {% if record.field_name == 'from_site' %}
-                            From Site
-                        {% elif record.field_name == 'to_site' %}
-                            Destination
-                        {% elif record.field_name == 'shipping_week' %}
-                            Shipping Week
-                        {% elif record.field_name == 'shipping_quantity' %}
-                            Shipping Quantity
-                        {% elif record.field_name == 'initial_record' %}
-                            Initial Record
-                        {% elif record.field_name == 'new_record' %}
-                            New Record
-                        {% elif record.field_name == 'record_deleted' %}
-                            Record Deleted
-                        {% else %}
-                            {{ record.field_name }}
-                        {% endif %}
-                    </td>
+                    <td class="timestamp">{{ record.changed_at_kst.strftime('%Y-%m-%d %H:%M') }} (KST)</td>
+                    <td>{{ record.action|capitalize }}</td>
+                    <td>{{ record.field_name or '-' }}</td>
                     <td>{{ record.old_value or '-' }}</td>
                     <td>{{ record.new_value or '-' }}</td>
+                    <td>{{ record.changed_by or '-' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
         {% else %}
         <div class="no-history">
-            <p>No change history available.</p>
+            <p>No audit history available.</p>
         </div>
         {% endif %}
     </div>

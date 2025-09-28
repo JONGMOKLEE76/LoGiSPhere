@@ -320,6 +320,7 @@
                 <li><a href="/dashboard" id="dashboard-link" class="active">📊 Dashboard</a></li>
                 <li><a href="/shipment" id="shipment-link">📦 Shipment</a></li>
                 <li><a href="/po" id="po-link">📋 Purchase Orders</a></li>
+                <li><a href="/booking" id="booking-link">📖 Booking</a></li>
                 {% if user_info and user_info.is_admin == 1 %}
                 <li><a href="/users" id="users-link">👤 User Management</a></li>
                 {% endif %}
@@ -333,25 +334,28 @@
                     <div class="filter-group">
                         <label for="supplier">Supplier:</label>
                         <select name="supplier" id="supplier">
-                            <option value="">All Suppliers</option>
                             {% for supplier in suppliers %}
-                            <option value="{{ supplier }}" {% if request.args.get('supplier') == supplier %}selected{% endif %}>{{ supplier }}</option>
+                                {% if supplier == 'All' %}
+                                    <option value="" {% if request.args.get('supplier', '') == '' %}selected{% endif %}>All</option>
+                                {% else %}
+                                    <option value="{{ supplier }}" {% if request.args.get('supplier') == supplier %}selected{% endif %}>{{ supplier }}</option>
+                                {% endif %}
                             {% endfor %}
                         </select>
                     </div>
                     
                     <div class="filter-group">
-                        <label for="week_from">Week From:</label>
-                        <input type="text" name="week_from" id="week_from" 
-                               placeholder="YYYY-MM-DD(WXX)" 
-                               value="{{ request.args.get('week_from', '') }}">
+               <label for="week_from">Week From:</label>
+               <input type="text" name="week_from" id="week_from" 
+                   placeholder="YYYY-MM-DD(W00)" 
+                   value="{{ week_from or default_weekname }}">
                     </div>
                     
                     <div class="filter-group">
-                        <label for="week_to">Week To:</label>
-                        <input type="text" name="week_to" id="week_to" 
-                               placeholder="YYYY-MM-DD(WXX)" 
-                               value="{{ request.args.get('week_to', '') }}">
+               <label for="week_to">Week To:</label>
+               <input type="text" name="week_to" id="week_to" 
+                   placeholder="YYYY-MM-DD(W00)" 
+                   value="{{ week_to or default_weekname_to }}">
                     </div>
                     
                     <button type="submit" class="search-btn">Search</button>
@@ -363,6 +367,15 @@
         {% if search_executed %}
         <h2>Shipment vs PO Analysis</h2>
         <p style="margin-bottom: 20px; color: #666;">Click on any cell to view detailed records</p>
+        
+        <!-- 비율 색상 범례 -->
+        <div class="ratio-legend" style="margin-bottom: 18px; display: flex; gap: 18px; align-items: center;">
+            <span style="display: flex; align-items: center;"><span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:#d4edda;border:1px solid #b7dfb7;margin-right:6px;"></span>100% (Sufficient)</span>
+            <span style="display: flex; align-items: center;"><span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:#fff3cd;border:1px solid #ffe69c;margin-right:6px;"></span>50~99% (Warning)</span>
+            <span style="display: flex; align-items: center;"><span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:#f5c6cb;border:1px solid #f1b0b7;margin-right:6px;"></span>Below 50% (Insufficient)</span>
+            <span style="display: flex; align-items: center;"><span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:#e2e3e5;border:1px solid #cfd2d6;margin-right:6px;"></span>No Shipment Plan</span>
+            <span style="display: flex; align-items: center;"><span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:#fff3cd;border:2px solid #ffc107;margin-right:6px;"></span>PO exceeds Shipment Plan</span>
+        </div>
         
         {% if pivot_data %}
         <table class="pivot-table">
@@ -385,7 +398,7 @@
                     {% set sp_qty = week_data.get('sp', 0) %}
                     {% set ratio = (po_qty / sp_qty * 100) if sp_qty > 0 else 0 %}
                     <td class="data-cell 
-                                {% if sp_qty == 0 and po_qty > 0 %}po-only-case
+                                {% if po_qty > sp_qty %}po-only-case
                                 {% elif sp_qty == 0 %}ratio-none
                                 {% elif ratio >= 100 %}ratio-excellent
                                 {% elif ratio >= 50 %}ratio-good
@@ -466,7 +479,7 @@
                             <th>From Site</th>
                             <th>Model</th>
                             <th>Quantity</th>
-                            <th>Week</th>
+                            <th>Remark</th>
                         </tr>
                     </thead>
                     <tbody id="sp-tbody"></tbody>
@@ -483,7 +496,7 @@
                             <th>Model</th>
                             <th>Quantity</th>
                             <th>RSD</th>
-                            <th>Status</th>
+                            <th>Remark</th>
                         </tr>
                     </thead>
                     <tbody id="po-tbody"></tbody>
@@ -557,7 +570,7 @@
                         <td>${record.from_site || 'N/A'}</td>
                         <td>${record.model_name || 'N/A'}</td>
                         <td style="text-align: right; font-weight: bold;">${record.quantity || 0}</td>
-                        <td>${record.week || 'N/A'}</td>
+                        <td>${record.remark || ''}</td>
                     `;
                     spTbody.appendChild(row);
                 });
@@ -576,7 +589,7 @@
                         <td>${record.model || 'N/A'}</td>
                         <td style="text-align: right; font-weight: bold;">${record.quantity || 0}</td>
                         <td>${record.rsd || 'N/A'}</td>
-                        <td><span style="padding: 3px 8px; border-radius: 3px; font-size: 12px; background-color: #d4edda; color: #155724;">${record.status || 'N/A'}</span></td>
+                        <td>${record.remark || ''}</td>
                     `;
                     poTbody.appendChild(row);
                 });

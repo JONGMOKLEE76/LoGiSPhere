@@ -187,11 +187,11 @@
                 </div>
                 <div class="po-info-item">
                     <strong>Created Date:</strong>
-                    <span>{{ po.created_at }}</span>
+                    <span>{{ po.created_at_kst.strftime('%Y-%m-%d %H:%M') }} (KST)</span>
                 </div>
                 <div class="po-info-item">
                     <strong>Last Update:</strong>
-                    <span>{{ po.last_update }}</span>
+                    <span>{{ po.last_update_kst.strftime('%Y-%m-%d %H:%M') }} (KST)</span>
                 </div>
             </div>
         </div>
@@ -202,16 +202,19 @@
         <table>
             <thead>
                 <tr>
-                    <th>Changed Date</th>
-                    <th>Field</th>
+                    <th>Change Date/Time</th>
+                    <th>Action</th>
+                    <th>Field Name</th>
                     <th>Old Value</th>
                     <th>New Value</th>
+                    <th>Changed By</th>
                 </tr>
             </thead>
             <tbody>
                 {% for h in history %}
                 <tr>
-                    <td>{{ h.changed_at }}</td>
+                    <td>{{ h.changed_at_kst.strftime('%Y-%m-%d %H:%M') }} (KST)</td>
+                    <td>{{ h.action|capitalize }}</td>
                     <td class="field-change">
                         {% if h.field_name == 'po_number' %}PO Number
                         {% elif h.field_name == 'from_site' %}From Site
@@ -220,6 +223,7 @@
                         {% elif h.field_name == 'po_qty' %}PO Quantity
                         {% elif h.field_name == 'rsd' %}Request Shipping Date
                         {% elif h.field_name == 'status' %}Status
+                        {% elif h.field_name == None %}—
                         {% else %}{{ h.field_name }}
                         {% endif %}
                     </td>
@@ -237,6 +241,7 @@
                             <em>Empty</em>
                         {% endif %}
                     </td>
+                    <td>{{ h.changed_by or '-' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

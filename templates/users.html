@@ -54,6 +54,7 @@
                 <li><a href="/dashboard" id="dashboard-link">📊 Dashboard</a></li>
                 <li><a href="/shipment" id="shipment-link">📦 Shipment</a></li>
                 <li><a href="/po" id="po-link">📋 Purchase Orders</a></li>
+                <li><a href="/booking" id="booking-link">📖 Booking</a></li>
                 {% if user_info and user_info.is_admin == 1 %}
                 <li><a href="/users" id="users-link" class="active">👤 User Management</a></li>
                 {% endif %}
@@ -109,11 +110,20 @@
         </div>
     </div>
 <script>
+// company_list를 자바스크립트 변수로 전달
+const companyList = {{ company_list|tojson }};
+
 function saveUser(userId) {
     const row = document.querySelector(`button[onclick='saveUser(${userId})']`).closest('tr');
     const company = row.querySelector('select').value;
     const approved = row.querySelector('.approve-checkbox').checked ? 1 : 0;
     const is_admin = row.querySelector('.admin-checkbox').checked ? 1 : 0;
+    // companyList에 없는 회사면 경고 후 중단
+    if (!companyList.includes(company)) {
+        const username = row.querySelector('td:nth-child(3)').textContent.trim();
+    alert(`'${company}' is not registered in our Company list.\nPlease select correct company name in the dropdown menu.`);
+        return;
+    }
     fetch(`/update_user/${userId}`, {
         method: 'POST',
         headers: {

@@ -125,6 +125,77 @@
             background-color: #dc3545;
             color: white;
         }
+        /* Search filter styles (from dashboard) */
+        .search-filter {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .filter-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            align-self: flex-end;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .reset-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            align-self: flex-end;
+        }
+
+        .reset-btn:hover {
+            background: #5a6268;
+        }
         .btn:hover {
             opacity: 0.8;
         }
@@ -177,6 +248,7 @@
                 <li><a href="/dashboard" id="dashboard-link">📊 Dashboard</a></li>
                 <li><a href="/shipment" id="shipment-link" class="active">📦 Shipment</a></li>
                 <li><a href="/po" id="po-link">📋 Purchase Orders</a></li>
+                <li><a href="/booking" id="booking-link">📖 Booking</a></li>
                 {% if user_info and user_info.is_admin == 1 %}
                 <li><a href="/users" id="users-link">👤 User Management</a></li>
                 {% endif %}
@@ -185,6 +257,35 @@
         
         <div class="container">
         <h2>Shipping Plans</h2>
+        <!-- Search Filter Form -->
+        <div class="search-filter">
+            <form method="GET" action="{{ url_for('shipment') }}">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="supplier">Supplier:</label>
+                        <select name="supplier" id="supplier">
+                            {% for supplier in suppliers %}
+                                {% if supplier == 'All' %}
+                                    <option value="" {% if request.args.get('supplier', '') == '' %}selected{% endif %}>All</option>
+                                {% else %}
+                                    <option value="{{ supplier }}" {% if request.args.get('supplier') == supplier %}selected{% endif %}>{{ supplier }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="week_from">Week From:</label>
+                        <input type="text" name="week_from" id="week_from" placeholder="YYYY-MM-DD(W00)" value="{{ week_from or default_weekname }}">
+                    </div>
+                    <div class="filter-group">
+                        <label for="week_to">Week To:</label>
+                        <input type="text" name="week_to" id="week_to" placeholder="YYYY-MM-DD(W00)" value="{{ week_to or default_weekname_to }}">
+                    </div>
+                    <button type="submit" class="search-btn">Search</button>
+                    <a href="{{ url_for('shipment') }}" class="reset-btn" style="text-decoration: none; display: inline-block; text-align: center;">Reset</a>
+                </div>
+            </form>
+        </div>
         <!-- Add New Record Form -->
         <div class="add-form">
             <h3>Add New Shipping Plan</h3>
@@ -195,7 +296,7 @@
                     <input type="text" name="model_name" placeholder="Model Name" required>
                     <input type="date" name="shipping_week_date" required>
                     <input type="number" name="shipping_quantity" placeholder="Shipping Quantity" required>
-                    <button type="submit" class="btn btn-success">Add</button>
+                    <button type="submit" class="btn btn-success" id="add-shipment-btn">Add</button>
                 </div>
                 <div class="form-row">
                     <input type="text" name="remark" placeholder="Remark (Maximum 100 characters)" maxlength="100" style="width: 100%;">
@@ -203,6 +304,7 @@
             </form>
         </div>
 
+        {% if search_executed %}
         <!-- Shipping Plan List Table -->
         <table>
             <thead>
@@ -256,6 +358,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% endif %}
     </div>
 
     <script>
@@ -351,6 +454,20 @@
                 input.addEventListener('change', function() {
                     this.style.color = '#333';
                 });
+            });
+        });
+    </script>
+    <script>
+        // Only LGE user can add shipment plan
+        document.addEventListener('DOMContentLoaded', function() {
+            var addForm = document.querySelector('.add-form form');
+            var addBtn = document.getElementById('add-shipment-btn');
+            var userCompany = "{{ user_info.company|e }}";
+            addForm.addEventListener('submit', function(e) {
+                if (userCompany !== 'LGE') {
+                    e.preventDefault();
+                    alert('Only LGE user can add shipment plan');
+                }
             });
         });
     </script>

@@ -1,0 +1,16 @@
+Shipper
+Shipping Week
+To Site
+Final Destination
+Consignee
+Notify
+POL
+
+Shipping Qty :
+Container Size : 20FT, 40GP, 40HC
+Container Qty 
+Transport Mode : Sea, Truck, Air
+CRD
+Request Date
+Requestor
+Request To
