@@ -105,7 +105,8 @@ def init_database():
             remark TEXT CHECK (LENGTH(remark) <= 100),
             created_at TIMESTAMPTZ DEFAULT NOW(),
             updated_at TIMESTAMPTZ DEFAULT NOW(),
-            is_deleted BOOLEAN DEFAULT FALSE
+            is_deleted BOOLEAN DEFAULT FALSE,
+            carry_over_flag BOOLEAN DEFAULT FALSE
         )
         ''')
         print("shipping_plans table created successfully")
