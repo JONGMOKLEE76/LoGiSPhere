@@ -333,6 +333,9 @@
                     <th>To Site</th>
                     <th>Model</th>
                     <th>PO Qty</th>
+                    <th>Shipped Qty</th>
+                    <th>Carry Over</th>
+                    <th>Status</th>
                     <th>RSD</th>
                     <th>Remark</th>
                     <th>Actions</th>
@@ -360,6 +363,21 @@
                     <td>
                         <span class="display-text">{{ po.po_qty }}</span>
                         <input type="number" class="edit-input" style="display: none;" value="{{ po.po_qty }}" name="po_qty">
+                    </td>
+                    <td>
+                        <span class="display-text">{{ po.shipped_quantity or 0 }}</span>
+                    </td>
+                    <td>
+                        <span class="display-text">{{ po.carry_over_quantity or 0 }}</span>
+                    </td>
+                    <td>
+                        <span class="display-text">
+                            {% if po.is_finished %}
+                                <span style="color: green;">✓ Completed</span>
+                            {% else %}
+                                <span style="color: orange;">⏳ Pending</span>
+                            {% endif %}
+                        </span>
                     </td>
                     <td>
                         <span class="display-text">{{ po.rsd }}</span>

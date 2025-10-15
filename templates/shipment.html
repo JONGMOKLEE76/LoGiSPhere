@@ -314,6 +314,9 @@
                     <th>Model Name</th>
                     <th>Shipping Week</th>
                     <th>Shipping Quantity</th>
+                    <th>Shipped Quantity</th>
+                    <th>Carry Over</th>
+                    <th>Status</th>
                     <th>Remark</th>
                     <th>Actions</th>
                 </tr>
@@ -340,6 +343,21 @@
                     <td>
                         <span class="display-text">{{ plan.shipping_quantity }}</span>
                         <input type="number" class="edit-input" style="display: none;" value="{{ plan.shipping_quantity }}" name="shipping_quantity">
+                    </td>
+                    <td>
+                        <span class="display-text">{{ plan.shipped_quantity or 0 }}</span>
+                    </td>
+                    <td>
+                        <span class="display-text">{{ plan.carry_over_quantity or 0 }}</span>
+                    </td>
+                    <td>
+                        <span class="display-text">
+                            {% if plan.is_finished %}
+                                <span style="color: green;">✓ Completed</span>
+                            {% else %}
+                                <span style="color: orange;">⏳ Pending</span>
+                            {% endif %}
+                        </span>
                     </td>
                     <td>
                         <span class="display-text">{{ plan.remark or '' }}</span>
