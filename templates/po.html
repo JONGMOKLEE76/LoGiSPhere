@@ -331,10 +331,11 @@
                     <th>PO Number</th>
                     <th>From Site</th>
                     <th>To Site</th>
+                    <th>Original Week</th>
+                    <th>Shipping Week</th>
                     <th>Model</th>
                     <th>PO Qty</th>
                     <th>Shipped Qty</th>
-                    <th>Carry Over</th>
                     <th>Status</th>
                     <th>RSD</th>
                     <th>Remark</th>
@@ -357,6 +358,12 @@
                         <input type="text" class="edit-input" style="display: none;" value="{{ po.to_site }}" name="to_site">
                     </td>
                     <td>
+                        <span class="display-text">{{ po.original_week or '' }}</span>
+                    </td>
+                    <td>
+                        <span class="display-text" style="{% if po.is_carry_over %}color: #ff6b00; font-weight: bold;{% endif %}">{{ po.shipping_week or '' }}</span>
+                    </td>
+                    <td>
                         <span class="display-text">{{ po.model }}</span>
                         <input type="text" class="edit-input" style="display: none;" value="{{ po.model }}" name="model">
                     </td>
@@ -366,9 +373,6 @@
                     </td>
                     <td>
                         <span class="display-text">{{ po.shipped_quantity or 0 }}</span>
-                    </td>
-                    <td>
-                        <span class="display-text">{{ po.carry_over_quantity or 0 }}</span>
                     </td>
                     <td>
                         <span class="display-text">

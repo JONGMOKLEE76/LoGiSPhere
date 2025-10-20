@@ -170,6 +170,90 @@ def get_current_week():
     """현재 주차를 Week 형식으로 반환"""
     today = datetime.today()
     return convert_date_to_week_format(today)
+
+def process_shipping_plans_carry_over(plans, default_weekname):
+    """선적 계획의 carry over 처리"""
+    result = []
+    
+    for plan in plans:
+        if plan['shipping_week'] < default_weekname and not plan['is_finished']:
+            # 과거 미완료 계획 처리
+            carry_over_qty = plan['shipping_quantity'] - plan['shipped_quantity']
+            
+            if carry_over_qty > 0:
+                # Carry over 레코드 생성 (잔량)
+                carry_over_plan = plan.copy()
+                carry_over_plan['original_shipping_week'] = plan['shipping_week']  # 원본 주차 보존
+                carry_over_plan['shipping_week'] = default_weekname
+                carry_over_plan['shipping_quantity'] = carry_over_qty
+                carry_over_plan['shipped_quantity'] = 0
+                carry_over_plan['is_finished'] = False
+                result.append(carry_over_plan)
+                
+                # Completed 레코드 생성 (선적 완료분, 있을 경우에만)
+                if plan['shipped_quantity'] > 0:
+                    completed_plan = plan.copy()
+                    completed_plan['original_shipping_week'] = plan['shipping_week']  # 원본 주차 보존
+                    completed_plan['shipping_quantity'] = plan['shipped_quantity']
+                    completed_plan['is_finished'] = True
+                    # shipping_week는 원본 그대로 (과거 주차)
+                    result.append(completed_plan)
+        else:
+            # 현재/미래 계획은 그대로 추가
+            plan['original_shipping_week'] = plan['shipping_week']  # 원본과 동일
+            result.append(plan)
+    
+    return result
+
+def process_purchase_orders_carry_over(orders, default_weekname):
+    """Purchase Orders의 carry over 처리"""
+    result = []
+    
+    # default_weekname에서 날짜 추출 (예: "2025-10-13(W42)" -> "2025-10-13")
+    default_date_str = default_weekname.split('(')[0]
+    default_date = datetime.strptime(default_date_str, '%Y-%m-%d').date()
+    
+    for order in orders:
+        # Original Week 계산 (RSD 기준)
+        if order['rsd']:
+            original_week = convert_date_to_week_format(order['rsd'])
+        else:
+            original_week = ''
+        
+        if order['rsd'] and order['rsd'] < default_date and not order['is_finished']:
+            # 과거 미완료 주문 처리
+            carry_over_qty = order['po_qty'] - order['shipped_quantity']
+            
+            if carry_over_qty > 0:
+                # Carry over 레코드 생성 (잔량)
+                carry_over_order = order.copy()
+                carry_over_order['original_week'] = original_week
+                carry_over_order['shipping_week'] = default_weekname
+                carry_over_order['po_qty'] = carry_over_qty
+                carry_over_order['shipped_quantity'] = 0
+                carry_over_order['is_finished'] = False
+                carry_over_order['is_carry_over'] = True
+                result.append(carry_over_order)
+                
+                # Completed 레코드 생성 (선적 완료분, 있을 경우에만)
+                if order['shipped_quantity'] > 0:
+                    completed_order = order.copy()
+                    completed_order['original_week'] = original_week
+                    completed_order['shipping_week'] = original_week
+                    completed_order['po_qty'] = order['shipped_quantity']
+                    completed_order['is_finished'] = True
+                    completed_order['is_carry_over'] = False
+                    # rsd는 원본 그대로 (과거 날짜)
+                    result.append(completed_order)
+        else:
+            # 현재/미래 주문은 그대로 추가
+            processed_order = order.copy()
+            processed_order['original_week'] = original_week
+            processed_order['shipping_week'] = original_week
+            processed_order['is_carry_over'] = False
+            result.append(processed_order)
+    
+    return result
     
 def insert_audit(table, action, field, old, new, username, record_id):
     conn = get_db_connection()
@@ -375,14 +459,14 @@ def dashboard():
         supplier_list = []
         
     if request.args:  # Search 버튼을 눌렀을 때만 DB 조회
-        # Shipment Plans 쿼리 조건 구성
         sp_conditions = ["is_deleted = FALSE"]
         sp_params = []
+        
         if supplier_filter:
             sp_conditions.append("from_site = %s")
             sp_params.append(supplier_filter)
         
-        # Carry over 포함 조회 로직 (Week 형식으로 비교)
+        # 주차 범위 조건 + 과거 미완료 데이터 포함
         if week_from and week_to:
             sp_conditions.append("""(
                 (shipping_week >= %s AND shipping_week <= %s) 
@@ -401,142 +485,23 @@ def dashboard():
             
         sp_where_clause = " AND ".join(sp_conditions)
         
-        # 현재 주차 계산
-        current_week = get_current_week()
-        
-        print(f"DEBUG - week_from: {week_from}")
-        print(f"DEBUG - week_to: {week_to}")
-        print(f"DEBUG - current_week: {current_week}")
-        print(f"DEBUG - sp_params: {sp_params}")
-        
-        # Shipment Plans 데이터 조회 (carry over 주차 변경 포함)
-        final_params = sp_params + [week_from, week_from]
-        final_sql = f'''
-            SELECT from_site, to_site, model_name,
-                   CASE 
-                       WHEN shipping_week < %s AND is_finished = FALSE
-                       THEN %s
-                       ELSE shipping_week 
-                   END AS shipping_week,
-                   shipping_quantity, shipped_quantity, is_finished,
-                   (shipping_quantity - shipped_quantity) AS carry_over_quantity
-            FROM shipping_plans 
-            WHERE {sp_where_clause}
-        '''
-        
-        print(f"DEBUG - 실행할 SQL: {final_sql}")
-        print(f"DEBUG - 파라미터: {final_params}")
-        print(f"DEBUG - sp_where_clause: {sp_where_clause}")
-        
-        # CASE문 없이 원본 데이터 조회 (비교용)
+        # Shipment Plans 데이터 조회
         cursor.execute(f'''
-            SELECT from_site, to_site, model_name, shipping_week, 
-                   shipping_quantity, shipped_quantity, is_finished,
-                   (shipping_quantity - shipped_quantity) AS carry_over_quantity
+            SELECT from_site, to_site, model_name, shipping_week,
+                   shipping_quantity, shipped_quantity, is_finished
             FROM shipping_plans 
             WHERE {sp_where_clause}
+            ORDER BY shipping_week, from_site, to_site, model_name
         ''', sp_params)
-        original_data = cursor.fetchall()
+        raw_shipment_plans = cursor.fetchall()
         
-        print(f"DEBUG - CASE문 없는 원본 데이터:")
-        for i, plan in enumerate(original_data):
-            print(f"DEBUG - ORIG[{i+1}] shipping_week: {plan['shipping_week']}, finished: {plan['is_finished']}")
-        
-        # 파라미터를 하나씩 명시적으로 설정해서 테스트
-        test_params = [
-            week_from,      # 1. WHERE shipping_week >= %s  
-            week_to,        # 2. WHERE shipping_week <= %s
-            week_from,      # 3. WHERE shipping_week < %s  
-            week_from,      # 4. CASE WHEN shipping_week < %s
-            week_from       # 5. CASE THEN %s
-        ]
-        
-        print(f"DEBUG - 명시적 파라미터:")
-        print(f"DEBUG - 1. WHERE >= '{test_params[0]}'")
-        print(f"DEBUG - 2. WHERE <= '{test_params[1]}'") 
-        print(f"DEBUG - 3. WHERE < '{test_params[2]}'")
-        print(f"DEBUG - 4. CASE WHEN < '{test_params[3]}'")
-        print(f"DEBUG - 5. CASE THEN '{test_params[4]}'")
-        
-        # 간단한 테스트 SQL로 확인
-        cursor.execute('''
-            SELECT shipping_week,
-                   CASE 
-                       WHEN shipping_week < %s AND is_finished = FALSE
-                       THEN %s
-                       ELSE shipping_week 
-                   END AS new_shipping_week,
-                   is_finished
-            FROM shipping_plans 
-            WHERE is_deleted = FALSE 
-              AND shipping_week = '2025-09-29(W40)'
-        ''', [week_from, week_from])  # [2025-10-13(W42), 2025-10-13(W42)]
-        
-        test_result = cursor.fetchall()
-        print(f"DEBUG - CASE문 테스트 결과:")
-        for row in test_result:
-            print(f"DEBUG - 원본: {row['shipping_week']} → 변환: {row['new_shipping_week']} (finished: {row['is_finished']})")
-        
-        # W46 데이터가 실제로 있는지 확인
-        cursor.execute('''
-            SELECT shipping_week, is_finished, COUNT(*) as count
-            FROM shipping_plans 
-            WHERE is_deleted = FALSE 
-              AND shipping_week = '2025-11-10(W46)'
-            GROUP BY shipping_week, is_finished
-        ''')
-        w46_data = cursor.fetchall()
-        print(f"DEBUG - W46 데이터 존재 여부:")
-        for row in w46_data:
-            print(f"DEBUG - W46: shipping_week={row['shipping_week']}, finished={row['is_finished']}, count={row['count']}")
-        
-        # 전체 WHERE 조건에 걸리는 데이터 확인  
-        cursor.execute(f'''
-            SELECT shipping_week, is_finished, COUNT(*) as count
-            FROM shipping_plans 
-            WHERE {sp_where_clause}
-            GROUP BY shipping_week, is_finished
-            ORDER BY shipping_week
-        ''', sp_params)
-        where_result = cursor.fetchall()
-        print(f"DEBUG - WHERE 조건에 걸리는 모든 데이터:")
-        for row in where_result:
-            print(f"DEBUG - WHERE: shipping_week={row['shipping_week']}, finished={row['is_finished']}, count={row['count']}")
-        
-        # 파라미터를 하나씩 다른 값으로 설정해서 어떤 게 CASE THEN에 들어가는지 확인
-        debug_params = [
-            '2025-10-13(W42)',    # 1. WHERE >= 
-            '2025-11-10(W46)',    # 2. WHERE <=
-            '2025-10-13(W42)',    # 3. WHERE <
-            '2025-10-13(W42)',    # 4. CASE WHEN <
-            'TEST_CASE_THEN'      # 5. CASE THEN (테스트용 특별한 값)
-        ]
-        
-        print(f"DEBUG - 테스트 파라미터 (CASE THEN에 'TEST_CASE_THEN' 넣음):")
-        for i, param in enumerate(debug_params):
-            print(f"DEBUG - {i+1}. '{param}'")
-        
-        cursor.execute(final_sql, debug_params)
-        shipment_plans = cursor.fetchall()
-        
-        print(f"DEBUG - *** SQL 직접 결과 ***")
-        print(f"DEBUG - 총 {len(shipment_plans)}개 레코드")
-        for i, plan in enumerate(shipment_plans):
-            print(f"DEBUG - SQL[{i+1}] shipping_week = '{plan['shipping_week']}' (type: {type(plan['shipping_week'])})")
-            print(f"DEBUG - SQL[{i+1}] finished = {plan['is_finished']}")
-            print(f"DEBUG - SQL[{i+1}] raw_data = {dict(plan)}")
-            print("---")
-        
-        # 데이터가 변조되는지 확인하기 위해 피벗 테이블 생성 전후 비교
-        print(f"DEBUG - *** 피벗 처리 전 원본 데이터 ***")
-        for i, plan in enumerate(shipment_plans):
-            print(f"DEBUG - BEFORE[{i+1}] shipping_week = '{plan['shipping_week']}'")
-        
-        print(f"DEBUG - *** 이제 피벗 테이블 생성 시작 ***")
+        # Python에서 carry over 처리
+        shipment_plans = process_shipping_plans_carry_over(raw_shipment_plans, default_weekname)
 
-        # Purchase Orders 쿼리 조건 구성 (carry over 포함)
+        # Purchase Orders 쿼리 조건 구성 (간단한 방식)
         po_conditions = ["status = 'Active'"]
         po_params = []
+        
         if supplier_filter:
             po_conditions.append("from_site = %s")
             po_params.append(supplier_filter)
@@ -545,7 +510,7 @@ def dashboard():
         week_from_date = week_from.split('(')[0] if week_from else ''
         week_to_date = week_to.split('(')[0] if week_to else ''
         
-        # PO carry over 로직 (RSD 날짜 기준)
+        # 날짜 범위 조건 + 과거 미완료 데이터 포함
         if week_from and week_to:
             po_conditions.append("""(
                 (rsd >= %s AND rsd <= %s) 
@@ -562,31 +527,21 @@ def dashboard():
             po_conditions.append("rsd <= %s")
             po_params.append(week_to_date)
             
-        # Purchase Orders 데이터 조회 (carry over 날짜 변경 포함)
+        # Purchase Orders 데이터 조회
         cursor.execute(f'''
-            SELECT po_number, from_site, to_site, model, po_qty, status,
-                   CASE 
-                       WHEN rsd < %s AND is_finished = FALSE
-                       THEN %s
-                       ELSE rsd 
-                   END AS rsd,
-                   shipped_quantity, is_finished,
-                   (po_qty - shipped_quantity) AS carry_over_quantity
+            SELECT po_number, from_site, to_site, model, po_qty, status, rsd,
+                   shipped_quantity, is_finished
             FROM purchase_orders 
             WHERE {" AND ".join(po_conditions)}
-        ''', po_params + [week_from_date, week_from_date])
-        purchase_orders = cursor.fetchall()
+            ORDER BY rsd, from_site, to_site, model
+        ''', po_params)
+        raw_purchase_orders = cursor.fetchall()
         
-        print(f"DEBUG - Purchase Orders 조회 결과:")
-        print(f"DEBUG - 총 {len(purchase_orders)}개 레코드")
-        for i, po in enumerate(purchase_orders):
-            print(f"DEBUG - [{i+1}] po_number: {po['po_number']}, from_site: {po['from_site']}, to_site: {po['to_site']}, model: {po['model']}")
-            print(f"DEBUG - [{i+1}] rsd: {po['rsd']}, po_qty: {po['po_qty']}, shipped: {po['shipped_quantity']}, finished: {po['is_finished']}")
-            print(f"DEBUG - [{i+1}] carry_over_quantity: {po['carry_over_quantity']}")
-            print("---")
-        
+        # Python에서 carry over 처리
+        purchase_orders = process_purchase_orders_carry_over(raw_purchase_orders, default_weekname)
         cursor.close()
         conn.close()
+        
         # 피벗 테이블 생성
         result = create_pivot_table(shipment_plans, purchase_orders)
         return render_template('dashboard.html', 
@@ -635,14 +590,13 @@ def create_pivot_table(shipment_plans, purchase_orders):
         week = plan['shipping_week']
         quantity = plan['shipping_quantity']
         
-        print(f"PIVOT DEBUG - SP: to_site={to_site}, week={week}, quantity={quantity}")
-        
         pivot[to_site][week]['sp'] += quantity
         pivot[to_site][week]['details']['sp'].append({
             'from_site': plan['from_site'],
             'model_name': plan['model_name'],
             'quantity': quantity,
-            'week': week
+            'original_shipping_week': plan.get('original_shipping_week', week),
+            'remark': plan.get('remark', '')
         })
         all_weeks.add(week)
     
@@ -659,8 +613,6 @@ def create_pivot_table(shipment_plans, purchase_orders):
         # RSD를 Week 형식으로 변환
         week = convert_date_to_week_format(rsd)
         
-        print(f"PIVOT DEBUG - PO: to_site={to_site}, rsd={rsd_str}, week={week}, quantity={quantity}")
-        
         if week:  # 변환이 성공한 경우만
             pivot[to_site][week]['po'] += quantity
             pivot[to_site][week]['details']['po'].append({
@@ -675,9 +627,6 @@ def create_pivot_table(shipment_plans, purchase_orders):
     
     # Week 정렬 (시간순)
     sorted_weeks = sorted(list(all_weeks), key=lambda x: x if x else '')
-    
-    print(f"PIVOT DEBUG - all_weeks: {all_weeks}")
-    print(f"PIVOT DEBUG - sorted_weeks: {sorted_weeks}")
     
     # To Site 정렬 (알파벳순)
     sorted_sites = sorted(pivot.keys())
@@ -903,22 +852,40 @@ def shipment():
         if supplier_filter:
             sp_conditions.append("from_site = %s")
             sp_params.append(supplier_filter)
-        if week_from:
-            sp_conditions.append("shipping_week >= %s")
-            sp_params.append(week_from)
-        if week_to:
+        # 주차 범위 조건 + 과거 미완료 데이터 포함
+        if week_from and week_to:
+            sp_conditions.append("""(
+                (shipping_week >= %s AND shipping_week <= %s) 
+                OR (shipping_week < %s AND is_finished = FALSE)
+            )""")
+            sp_params.extend([week_from, week_to, week_from])
+        elif week_from:
+            sp_conditions.append("""(
+                shipping_week >= %s 
+                OR (shipping_week < %s AND is_finished = FALSE)
+            )""")
+            sp_params.extend([week_from, week_from])
+        elif week_to:
             sp_conditions.append("shipping_week <= %s")
             sp_params.append(week_to)
+            
         sp_where_clause = " AND ".join(sp_conditions)
+        
+        # Shipment Plans 데이터 조회
         cursor.execute(f'''
-            SELECT * FROM shipping_plans
+            SELECT from_site, to_site, model_name, shipping_week,
+                   shipping_quantity, shipped_quantity, is_finished
+            FROM shipping_plans 
             WHERE {sp_where_clause}
-            ORDER BY id DESC
+            ORDER BY shipping_week, from_site, to_site, model_name
         ''', sp_params)
-        plans = cursor.fetchall()
-
+        raw_shipment_plans = cursor.fetchall()
+        # Python에서 carry over 처리
+        plans = process_shipping_plans_carry_over(raw_shipment_plans, default_weekname)
+    
     cursor.close()
     conn.close()
+    
     return render_template('shipment.html',
         plans=plans,
         user_info=user_info,
@@ -983,19 +950,40 @@ def po():
         if supplier_filter:
             po_conditions.append("from_site = %s")
             po_params.append(supplier_filter)
-        if week_from:
-            po_conditions.append("rsd >= %s")
-            po_params.append(week_from[:10])  # yyyy-mm-dd 부분만 추출
-        if week_to:
+        
+        # Week 형식에서 날짜 추출 (PO는 날짜 형식이므로)
+        week_from_date = week_from.split('(')[0] if week_from else ''
+        week_to_date = week_to.split('(')[0] if week_to else ''
+
+        # 날짜 범위 조건 + 과거 미완료 데이터 포함
+        if week_from and week_to:
+            po_conditions.append("""(
+                (rsd >= %s AND rsd <= %s) 
+                OR (rsd < %s AND is_finished = FALSE)
+            )""")
+            po_params.extend([week_from_date, week_to_date, week_from_date])
+        elif week_from:
+            po_conditions.append("""(
+                rsd >= %s 
+                OR (rsd < %s AND is_finished = FALSE)
+            )""")
+            po_params.extend([week_from_date, week_from_date])
+        elif week_to:
             po_conditions.append("rsd <= %s")
-            po_params.append(week_to[:10])   # yyyy-mm-dd 부분만 추출
-        po_where_clause = " AND ".join(po_conditions)
+            po_params.append(week_to_date)
+
+        # Purchase Orders 데이터 조회
         cursor.execute(f'''
-            SELECT * FROM purchase_orders
-            WHERE {po_where_clause}
-            ORDER BY id DESC
+            SELECT po_number, from_site, to_site, model, po_qty, status, rsd,
+                   shipped_quantity, is_finished
+            FROM purchase_orders 
+            WHERE {" AND ".join(po_conditions)}
+            ORDER BY rsd, from_site, to_site, model
         ''', po_params)
-        pos = cursor.fetchall()
+        raw_purchase_orders = cursor.fetchall()
+
+        # Python에서 carry over 처리
+        pos = process_purchase_orders_carry_over(raw_purchase_orders, default_weekname)
 
     cursor.close()
     conn.close()

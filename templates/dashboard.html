@@ -479,6 +479,7 @@
                             <th>From Site</th>
                             <th>Model</th>
                             <th>Quantity</th>
+                            <th>Original Week</th>
                             <th>Remark</th>
                         </tr>
                     </thead>
@@ -566,16 +567,20 @@
             if (details.sp && details.sp.length > 0) {
                 details.sp.forEach(record => {
                     const row = document.createElement('tr');
+                    const originalWeek = record.original_shipping_week || week;
+                    const isCarryOver = originalWeek !== week;
+                    
                     row.innerHTML = `
                         <td>${record.from_site || 'N/A'}</td>
                         <td>${record.model_name || 'N/A'}</td>
                         <td style="text-align: right; font-weight: bold;">${record.quantity || 0}</td>
+                        <td style="${isCarryOver ? 'color: #ff6b00; font-weight: bold;' : ''}">${originalWeek}</td>
                         <td>${record.remark || ''}</td>
                     `;
                     spTbody.appendChild(row);
                 });
             } else {
-                spTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #666;">No Shipment Plans</td></tr>';
+                spTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">No Shipment Plans</td></tr>';
             }
             
             // PO 데이터 표시

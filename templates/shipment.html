@@ -312,10 +312,10 @@
                     <th>From Site</th>
                     <th>Destination (To Site)</th>
                     <th>Model Name</th>
+                    <th>Original Week</th>
                     <th>Shipping Week</th>
                     <th>Shipping Quantity</th>
                     <th>Shipped Quantity</th>
-                    <th>Carry Over</th>
                     <th>Status</th>
                     <th>Remark</th>
                     <th>Actions</th>
@@ -337,6 +337,15 @@
                         <input type="text" class="edit-input" style="display: none;" value="{{ plan.model_name }}" name="model_name">
                     </td>
                     <td>
+                        <span class="display-text">
+                            {% if plan.original_shipping_week and plan.original_shipping_week != plan.shipping_week %}
+                                <span style="color: orange; font-weight: bold;">{{ plan.original_shipping_week }}</span>
+                            {% else %}
+                                <span style="color: #666;">-</span>
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
                         <span class="display-text">{{ plan.shipping_week }}</span>
                         <input type="date" class="edit-input" style="display: none;" value="" name="shipping_week_date" data-original="{{ plan.shipping_week }}">
                     </td>
@@ -346,9 +355,6 @@
                     </td>
                     <td>
                         <span class="display-text">{{ plan.shipped_quantity or 0 }}</span>
-                    </td>
-                    <td>
-                        <span class="display-text">{{ plan.carry_over_quantity or 0 }}</span>
                     </td>
                     <td>
                         <span class="display-text">
