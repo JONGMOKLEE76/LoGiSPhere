@@ -1,0 +1,13 @@
+선적계획 데이터 관리 방법
+선적계획 데이터는 기본적으로 아래의 필드로 구성된다.
+
+From Site
+To Site
+Mapping Model.Suffix
+Week Name
+Qty
+
+데이터가 등록된 후에 유저가 변경도 가능해야 한다. 변경가능한 필드는 Week Name, Qty 이다.
+
+선적계획은 조회 가능해야 한다.
+유저가 웹페이지에서 조회할 때 필터링할 수 있는 필드는 From Site, To Site, Week From, Week To 이다.

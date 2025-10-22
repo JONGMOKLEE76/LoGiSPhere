@@ -600,27 +600,22 @@ def create_pivot_table(shipment_plans, purchase_orders):
         })
         all_weeks.add(week)
     
-    # Purchase Orders 데이터 처리 (rsd를 Week 형식으로 변환)
+    # Purchase Orders 데이터 처리 (이미 shipping_week 정보 사용)
     for po in purchase_orders:
-        to_site = po['to_site']  # 정규화 제거
-        rsd = po['rsd']
-        if rsd:
-            rsd_str = rsd.strftime('%Y-%m-%d')
-        else:
-            rsd_str = ''
+        to_site = po['to_site']
         quantity = po['po_qty']
         
-        # RSD를 Week 형식으로 변환
-        week = convert_date_to_week_format(rsd)
+        # 이미 carry over 처리된 shipping_week 사용
+        week = po['shipping_week']
         
-        if week:  # 변환이 성공한 경우만
+        if week:  # shipping_week가 있는 경우만
             pivot[to_site][week]['po'] += quantity
             pivot[to_site][week]['details']['po'].append({
                 'po_number': po['po_number'],
                 'from_site': po['from_site'],
                 'model': po['model'],
                 'quantity': quantity,
-                'rsd': rsd_str,
+                'original_week': po['original_week'],  # Original Week 정보
                 'status': po['status']
             })
             all_weeks.add(week)
@@ -822,6 +817,7 @@ def shipment():
 
     # 검색 조건 받기
     supplier_filter = request.args.get('supplier', '')
+    to_site_filter = request.args.get('to_site', '')
     week_from = request.args.get('week_from', default_weekname)
     week_to = request.args.get('week_to', default_weekname_to)
 
@@ -844,14 +840,20 @@ def shipment():
         supplier_list = []
 
     plans = []
+    total_count = 0
+    page = int(request.args.get('page', 1))
+    per_page = 10
     search_executed = False
-    if request.args:  # Search 버튼을 눌렀을 때만 DB 조회
+    if request.args:
         search_executed = True
         sp_conditions = ["is_deleted = FALSE"]
         sp_params = []
         if supplier_filter:
             sp_conditions.append("from_site = %s")
             sp_params.append(supplier_filter)
+        if to_site_filter:
+            sp_conditions.append("to_site ILIKE %s")
+            sp_params.append(f"%{to_site_filter}%")
         # 주차 범위 조건 + 과거 미완료 데이터 포함
         if week_from and week_to:
             sp_conditions.append("""(
@@ -868,24 +870,28 @@ def shipment():
         elif week_to:
             sp_conditions.append("shipping_week <= %s")
             sp_params.append(week_to)
-            
         sp_where_clause = " AND ".join(sp_conditions)
-        
-        # Shipment Plans 데이터 조회
+        # 전체 개수 조회
+        cursor.execute(f'''SELECT COUNT(*) FROM shipping_plans WHERE {sp_where_clause}''', sp_params)
+        row = cursor.fetchone()
+        if row:
+            total_count = list(row.values())[0]
+        else:
+            total_count = 0
+        # 페이지네이션 적용
+        offset = (page - 1) * per_page
         cursor.execute(f'''
-            SELECT from_site, to_site, model_name, shipping_week,
-                   shipping_quantity, shipped_quantity, is_finished
+            SELECT id, from_site, to_site, model_name, shipping_week,
+                   shipping_quantity, shipped_quantity, is_finished, remark
             FROM shipping_plans 
             WHERE {sp_where_clause}
             ORDER BY shipping_week, from_site, to_site, model_name
-        ''', sp_params)
-        raw_shipment_plans = cursor.fetchall()
-        # Python에서 carry over 처리
-        plans = process_shipping_plans_carry_over(raw_shipment_plans, default_weekname)
-    
+            LIMIT %s OFFSET %s
+        ''', sp_params + [per_page, offset])
+        plans = cursor.fetchall()
     cursor.close()
     conn.close()
-    
+    total_pages = (total_count + per_page - 1) // per_page if per_page else 1
     return render_template('shipment.html',
         plans=plans,
         user_info=user_info,
@@ -894,7 +900,10 @@ def shipment():
         week_to=week_to,
         default_weekname=default_weekname,
         default_weekname_to=default_weekname_to,
-        search_executed=search_executed
+        search_executed=search_executed,
+        page=page,
+        total_pages=total_pages,
+        total_count=total_count
     )
 
 # PO page route
@@ -920,6 +929,7 @@ def po():
 
     # 검색 조건 받기
     supplier_filter = request.args.get('supplier', '')
+    to_site_filter = request.args.get('to_site', '')
     week_from = request.args.get('week_from', default_weekname)
     week_to = request.args.get('week_to', default_weekname_to)
 
@@ -950,6 +960,9 @@ def po():
         if supplier_filter:
             po_conditions.append("from_site = %s")
             po_params.append(supplier_filter)
+        if to_site_filter:
+            po_conditions.append("to_site ILIKE %s")
+            po_params.append(f"%{to_site_filter}%")
         
         # Week 형식에서 날짜 추출 (PO는 날짜 형식이므로)
         week_from_date = week_from.split('(')[0] if week_from else ''
@@ -974,16 +987,13 @@ def po():
 
         # Purchase Orders 데이터 조회
         cursor.execute(f'''
-            SELECT po_number, from_site, to_site, model, po_qty, status, rsd,
-                   shipped_quantity, is_finished
+            SELECT id, po_number, from_site, to_site, model, po_qty, status, rsd,
+                   shipped_quantity, is_finished, remark
             FROM purchase_orders 
             WHERE {" AND ".join(po_conditions)}
             ORDER BY rsd, from_site, to_site, model
         ''', po_params)
-        raw_purchase_orders = cursor.fetchall()
-
-        # Python에서 carry over 처리
-        pos = process_purchase_orders_carry_over(raw_purchase_orders, default_weekname)
+        pos = cursor.fetchall()
 
     cursor.close()
     conn.close()
@@ -1192,7 +1202,7 @@ def booking():
     search_executed = False
     if request.args:
         search_executed = True
-        # shipping_plans 조회
+        # shipping_plans 조회 (미완료만)
         sp_conditions = ["is_deleted = FALSE"]
         sp_params = []
         if supplier_filter:
@@ -1201,12 +1211,23 @@ def booking():
         if to_site_filter:
             sp_conditions.append("to_site ILIKE %s")
             sp_params.append(f"%{to_site_filter}%")
-        if week_from:
-            sp_conditions.append("shipping_week >= %s")
-            sp_params.append(week_from)
-        if week_to:
-            sp_conditions.append("shipping_week <= %s")
+        if week_from and week_to:
+            sp_conditions.append("""(
+                (shipping_week >= %s AND shipping_week <= %s AND is_finished = FALSE)
+                OR (shipping_week < %s AND is_finished = FALSE)
+            )""")
+            sp_params.extend([week_from, week_to, week_from])
+        elif week_from:
+            sp_conditions.append("""(
+                shipping_week >= %s AND is_finished = FALSE
+                OR (shipping_week < %s AND is_finished = FALSE)
+            )""")
+            sp_params.extend([week_from, week_from])
+        elif week_to:
+            sp_conditions.append("shipping_week <= %s AND is_finished = FALSE")
             sp_params.append(week_to)
+        else:
+            sp_conditions.append("is_finished = FALSE")
         sp_where_clause = " AND ".join(sp_conditions)
         cursor.execute(f'''
             SELECT * FROM shipping_plans
@@ -1215,7 +1236,7 @@ def booking():
         ''', sp_params)
         plans = cursor.fetchall()
 
-        # purchase_orders 조회
+        # purchase_orders 조회 (미완료만)
         po_conditions = ["status = 'Active'"]
         po_params = []
         if supplier_filter:
@@ -1224,12 +1245,25 @@ def booking():
         if to_site_filter:
             po_conditions.append("to_site ILIKE %s")
             po_params.append(f"%{to_site_filter}%")
-        if week_from:
-            po_conditions.append("rsd >= %s")
-            po_params.append(week_from[:10])
-        if week_to:
-            po_conditions.append("rsd <= %s")
-            po_params.append(week_to[:10])
+        week_from_date = week_from[:10] if week_from else ''
+        week_to_date = week_to[:10] if week_to else ''
+        if week_from and week_to:
+            po_conditions.append("""(
+                (rsd >= %s AND rsd <= %s AND is_finished = FALSE)
+                OR (rsd < %s AND is_finished = FALSE)
+            )""")
+            po_params.extend([week_from_date, week_to_date, week_from_date])
+        elif week_from:
+            po_conditions.append("""(
+                rsd >= %s AND is_finished = FALSE
+                OR (rsd < %s AND is_finished = FALSE)
+            )""")
+            po_params.extend([week_from_date, week_from_date])
+        elif week_to:
+            po_conditions.append("rsd <= %s AND is_finished = FALSE")
+            po_params.append(week_to_date)
+        else:
+            po_conditions.append("is_finished = FALSE")
         po_where_clause = " AND ".join(po_conditions)
         cursor.execute(f'''
             SELECT po_number, from_site, to_site, model, po_qty, rsd FROM purchase_orders

@@ -285,6 +285,10 @@
                         </select>
                     </div>
                     <div class="filter-group">
+                        <label for="to_site">To Site:</label>
+                        <input type="text" name="to_site" id="to_site" placeholder="Destination" value="{{ request.args.get('to_site', '') }}">
+                    </div>
+                    <div class="filter-group">
                         <label for="week_from">Week From:</label>
                         <input type="text" name="week_from" id="week_from" placeholder="YYYY-MM-DD(W00)" value="{{ week_from or default_weekname }}">
                     </div>
@@ -331,8 +335,6 @@
                     <th>PO Number</th>
                     <th>From Site</th>
                     <th>To Site</th>
-                    <th>Original Week</th>
-                    <th>Shipping Week</th>
                     <th>Model</th>
                     <th>PO Qty</th>
                     <th>Shipped Qty</th>
@@ -356,12 +358,6 @@
                     <td>
                         <span class="display-text">{{ po.to_site }}</span>
                         <input type="text" class="edit-input" style="display: none;" value="{{ po.to_site }}" name="to_site">
-                    </td>
-                    <td>
-                        <span class="display-text">{{ po.original_week or '' }}</span>
-                    </td>
-                    <td>
-                        <span class="display-text" style="{% if po.is_carry_over %}color: #ff6b00; font-weight: bold;{% endif %}">{{ po.shipping_week or '' }}</span>
                     </td>
                     <td>
                         <span class="display-text">{{ po.model }}</span>

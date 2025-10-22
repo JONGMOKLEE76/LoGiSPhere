@@ -199,17 +199,17 @@
             border-radius: 5px;
         }
 
-        /* PO만 있고 SP가 없는 특이한 케이스용 스타일 */
+        /* PO가 SP를 초과하는 케이스용 스타일 */
         .po-only-case {
-            background-color: #fff3cd !important;
-            border: 2px solid #ffc107 !important;
+            background-color: #ffe0b2 !important;
+            border: 2px solid #ff9800 !important;
             animation: attention-pulse 2s infinite;
         }
 
         .po-only-text {
             font-weight: bold;
             font-style: italic;
-            color: #856404;
+            color: #e65100;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
             font-size: 16px;
         }
@@ -374,7 +374,7 @@
             <span style="display: flex; align-items: center;"><span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:#fff3cd;border:1px solid #ffe69c;margin-right:6px;"></span>50~99% (Warning)</span>
             <span style="display: flex; align-items: center;"><span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:#f5c6cb;border:1px solid #f1b0b7;margin-right:6px;"></span>Below 50% (Insufficient)</span>
             <span style="display: flex; align-items: center;"><span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:#e2e3e5;border:1px solid #cfd2d6;margin-right:6px;"></span>No Shipment Plan</span>
-            <span style="display: flex; align-items: center;"><span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:#fff3cd;border:2px solid #ffc107;margin-right:6px;"></span>PO exceeds Shipment Plan</span>
+            <span style="display: flex; align-items: center;"><span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:#ffe0b2;border:2px solid #ff9800;margin-right:6px;"></span>PO exceeds Shipment Plan</span>
         </div>
         
         {% if pivot_data %}
@@ -496,7 +496,7 @@
                             <th>From Site</th>
                             <th>Model</th>
                             <th>Quantity</th>
-                            <th>RSD</th>
+                            <th>Original Week</th>
                             <th>Remark</th>
                         </tr>
                     </thead>
@@ -588,12 +588,15 @@
             if (details.po && details.po.length > 0) {
                 details.po.forEach(record => {
                     const row = document.createElement('tr');
+                    const originalWeek = record.original_week || 'N/A';
+                    const isCarryOver = originalWeek !== week;
+                    
                     row.innerHTML = `
                         <td>${record.po_number || 'N/A'}</td>
                         <td>${record.from_site || 'N/A'}</td>
                         <td>${record.model || 'N/A'}</td>
                         <td style="text-align: right; font-weight: bold;">${record.quantity || 0}</td>
-                        <td>${record.rsd || 'N/A'}</td>
+                        <td style="${isCarryOver ? 'color: #ff6b00; font-weight: bold;' : ''}">${originalWeek}</td>
                         <td>${record.remark || ''}</td>
                     `;
                     poTbody.appendChild(row);
