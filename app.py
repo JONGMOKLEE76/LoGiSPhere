@@ -210,17 +210,14 @@ def process_purchase_orders_carry_over(orders, default_weekname):
     result = []
     
     # default_weekname에서 날짜 추출 (예: "2025-10-13(W42)" -> "2025-10-13")
-    default_date_str = default_weekname.split('(')[0]
-    default_date = datetime.strptime(default_date_str, '%Y-%m-%d').date()
+    # default_date_str = default_weekname.split('(')[0]
+    # default_date = datetime.strptime(default_date_str, '%Y-%m-%d').date()
     
     for order in orders:
         # Original Week 계산 (RSD 기준)
-        if order['rsd']:
-            original_week = convert_date_to_week_format(order['rsd'])
-        else:
-            original_week = ''
+        original_week = convert_date_to_week_format(order['rsd'])
         
-        if order['rsd'] and order['rsd'] < default_date and not order['is_finished']:
+        if original_week < default_weekname and not order['is_finished']:
             # 과거 미완료 주문 처리
             carry_over_qty = order['po_qty'] - order['shipped_quantity']
             
@@ -1266,29 +1263,29 @@ def booking():
             po_conditions.append("is_finished = FALSE")
         po_where_clause = " AND ".join(po_conditions)
         cursor.execute(f'''
-            SELECT po_number, from_site, to_site, model, po_qty, rsd FROM purchase_orders
+            SELECT id, po_number, from_site, to_site, model, po_qty, status, rsd, shipped_quantity, is_finished, remark FROM purchase_orders
             WHERE {po_where_clause}
             ORDER BY id DESC
         ''', po_params)
         po_rows = cursor.fetchall()
 
-        # PO의 RSD를 weekname으로 변환하여 매칭용 dict 생성
+        # Carry over 처리
+        plans = process_shipping_plans_carry_over(plans, default_weekname)
+        po_rows = process_purchase_orders_carry_over(po_rows, default_weekname)
+
+        # PO 딕셔너리 생성
         po_map = {}
         for po in po_rows:
-            weekname = convert_date_to_week_format(po['rsd']) if po['rsd'] else ''
-            key = (po['from_site'], po['to_site'], po['model'], weekname)
-            po_map[key] = po
+            key = (po['from_site'], po['to_site'], po['model'], po['shipping_week'])
+            if key not in po_map:
+                po_map[key] = []
+            po_map[key].append({'po_number': po['po_number'], 'po_qty': po['po_qty']})
 
-        # plans에 PO 정보 매칭
+        # 선적계획에 PO 매칭
         for plan in plans:
             key = (plan['from_site'], plan['to_site'], plan['model_name'], plan['shipping_week'])
-            po = po_map.get(key)
-            if po:
-                plan['po_number'] = po['po_number']
-                plan['po_qty'] = po['po_qty']
-            else:
-                plan['po_number'] = '-'
-                plan['po_qty'] = '-'
+            plan['matched_pos'] = po_map.get(key, [])
+
     # Fetch logistics company users for Contact Person selection
     cursor = conn.cursor()
     cursor.execute('''

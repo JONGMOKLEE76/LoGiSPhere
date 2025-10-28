@@ -433,41 +433,190 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span style="font-size:1.2em;">🤗</span>
                     <span>Please select the shipping plan(s) you want to book.</span>
                 </div>
-                <!-- Shipping Plan List Table -->
-                <table id="plans-table">
-                    <thead>
-                        <tr>
-                            <th><input type="checkbox" id="select-all"></th>
-                            <th>From Site</th>
-                            <th>To Site</th>
-                            <th>Model Name</th>
-                            <th>Shipping Week</th>
-                            <th>Shipping Quantity</th>
-                            <th>PO Number</th>
-                            <th>PO Qty</th>
-                            <th>Remark</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if plans and plans|length > 0 %}
-                            {% for plan in plans %}
-                            <tr>
-                                <td><input type="checkbox" name="select_plan" value="{{ plan.id }}" class="row-checkbox" data-from-site="{{ plan.from_site }}" data-to-site="{{ plan.to_site }}" data-model="{{ plan.model_name }}" data-plan-qty="{{ plan.shipping_quantity }}" data-po-number="{{ plan.po_number }}" data-po-qty="{{ plan.po_qty }}"></td>
-                                <td>{{ plan.from_site }}</td>
-                                <td>{{ plan.to_site }}</td>
-                                <td>{{ plan.model_name }}</td>
-                                <td>{{ plan.shipping_week }}</td>
-                                <td>{{ plan.shipping_quantity }}</td>
-                                <td>{{ plan.po_number }}</td>
-                                <td>{{ plan.po_qty }}</td>
-                                <td>{{ plan.remark or '' }}</td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr><td colspan="9" style="text-align:center; color:#888;">No results found.</td></tr>
-                        {% endif %}
-                    </tbody>
-                </table>
+                <!-- Shipping Plan Cards -->
+                <div class="plan-cards-container">
+                    {% if plans and plans|length > 0 %}
+                        {% for plan in plans %}
+                        <div class="plan-card" data-plan-id="{{ plan.id }}">
+                            <div class="card-header">
+                                <input type="checkbox" name="select_plan" value="{{ plan.id }}" class="plan-checkbox" 
+                                       data-from-site="{{ plan.from_site }}" 
+                                       data-to-site="{{ plan.to_site }}" 
+                                       data-model="{{ plan.model_name }}" 
+                                       data-plan-qty="{{ plan.shipping_quantity }}">
+                                <h3 class="model-name">{{ plan.model_name }}</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="plan-info">
+                                    <h4>📦 Shipping Plan</h4>
+                                    <div class="info-item">
+                                        <span class="label">Route:</span>
+                                        <span class="value">{{ plan.from_site }} → {{ plan.to_site }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="label">Week:</span>
+                                        <span class="value">{{ plan.shipping_week }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="label">Quantity:</span>
+                                        <span class="value">{{ plan.shipping_quantity }}</span>
+                                    </div>
+                                    {% if plan.remark %}
+                                    <div class="info-item">
+                                        <span class="label">Remark:</span>
+                                        <span class="value">{{ plan.remark }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="po-info">
+                                    <h4>📋 Matched POs</h4>
+                                    {% if plan.matched_pos and plan.matched_pos|length > 0 %}
+                                        {% for po in plan.matched_pos %}
+                                        <div class="po-item">
+                                            <div class="po-number">{{ po.po_number }}</div>
+                                            <div class="po-qty">Qty: {{ po.po_qty }}</div>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="no-po">No matching POs found</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-results">
+                            <div style="text-align:center; color:#888; font-size:1.2em; padding:40px;">
+                                No shipping plans found for the selected criteria.
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <style>
+                .plan-cards-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                    margin-top: 20px;
+                }
+                
+                .plan-card {
+                    background: #fff;
+                    border: 2px solid #e0e6ed;
+                    border-radius: 12px;
+                    box-shadow: 0 2px 8px rgba(102,126,234,0.08);
+                    transition: all 0.3s ease;
+                    overflow: hidden;
+                }
+                
+                .plan-card:hover {
+                    border-color: #667eea;
+                    box-shadow: 0 4px 16px rgba(102,126,234,0.15);
+                    transform: translateY(-2px);
+                }
+                
+                .plan-card.selected {
+                    border-color: #667eea;
+                    background: #f3f7ff;
+                }
+                
+                .card-header {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 16px 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+                
+                .plan-checkbox {
+                    width: 18px;
+                    height: 18px;
+                    cursor: pointer;
+                }
+                
+                .model-name {
+                    margin: 0;
+                    font-size: 1.4em;
+                    font-weight: 600;
+                }
+                
+                .card-content {
+                    display: flex;
+                    padding: 20px;
+                    gap: 24px;
+                }
+                
+                .plan-info, .po-info {
+                    flex: 1;
+                }
+                
+                .plan-info h4, .po-info h4 {
+                    margin: 0 0 12px 0;
+                    color: #2c3556;
+                    font-size: 1.1em;
+                    font-weight: 600;
+                    border-bottom: 2px solid #f0f2f5;
+                    padding-bottom: 8px;
+                }
+                
+                .info-item {
+                    display: flex;
+                    margin-bottom: 8px;
+                    align-items: center;
+                }
+                
+                .info-item .label {
+                    font-weight: 600;
+                    color: #666;
+                    width: 80px;
+                    min-width: 80px;
+                }
+                
+                .info-item .value {
+                    color: #2c3556;
+                    font-weight: 500;
+                }
+                
+                .po-item {
+                    background: #f8faff;
+                    border: 1px solid #d1d5db;
+                    border-radius: 6px;
+                    padding: 8px 12px;
+                    margin-bottom: 8px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .po-number {
+                    font-weight: 600;
+                    color: #2c3556;
+                }
+                
+                .po-qty {
+                    color: #667eea;
+                    font-weight: 500;
+                    font-size: 0.9em;
+                }
+                
+                .no-po {
+                    color: #888;
+                    font-style: italic;
+                    text-align: center;
+                    padding: 20px;
+                    background: #f9f9f9;
+                    border-radius: 6px;
+                }
+                
+                @media (max-width: 768px) {
+                    .card-content {
+                        flex-direction: column;
+                        gap: 16px;
+                    }
+                }
+                </style>
                 <div style="display: flex; flex-direction: column; align-items: center; margin-top: 32px;">
                     <button id="start-booking-btn" style="
                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -599,27 +748,63 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <script>
             document.addEventListener('DOMContentLoaded', function() {
-                const selectAll = document.getElementById('select-all');
-                const checkboxes = document.querySelectorAll('.row-checkbox');
-                if (selectAll) {
-                    selectAll.addEventListener('change', function() {
-                        checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
+                // 카드 선택 기능
+                const checkboxes = document.querySelectorAll('.plan-checkbox');
+                const planCards = document.querySelectorAll('.plan-card');
+                
+                // 체크박스 변경 시 카드 스타일 업데이트
+                checkboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const card = this.closest('.plan-card');
+                        if (this.checked) {
+                            card.classList.add('selected');
+                        } else {
+                            card.classList.remove('selected');
+                        }
+                        updateBookingButton();
                     });
+                });
+                
+                // 카드 클릭 시 체크박스 토글
+                planCards.forEach(card => {
+                    card.addEventListener('click', function(e) {
+                        if (e.target.type !== 'checkbox') {
+                            const checkbox = this.querySelector('.plan-checkbox');
+                            checkbox.checked = !checkbox.checked;
+                            checkbox.dispatchEvent(new Event('change'));
+                        }
+                    });
+                });
+                
+                // 선택된 계획 수에 따라 버튼 텍스트 업데이트
+                function updateBookingButton() {
+                    const startBtn = document.getElementById('start-booking-btn');
+                    const checkedCount = document.querySelectorAll('.plan-checkbox:checked').length;
+                    if (startBtn) {
+                        if (checkedCount === 0) {
+                            startBtn.textContent = '🚢 Start Booking';
+                            startBtn.style.opacity = '0.6';
+                        } else {
+                            startBtn.textContent = `🚢 Book Selected Plans (${checkedCount})`;
+                            startBtn.style.opacity = '1';
+                        }
+                    }
                 }
-                // Start Booking 버튼 클릭 시 booking-form-area 표시, 체크 없으면 경고
+                
+                // Start Booking 버튼 클릭 시 booking-form-area 표시
                 const startBtn = document.getElementById('start-booking-btn');
                 const formOuter = document.getElementById('booking-form-outer');
                 const formArea = document.getElementById('booking-form-area');
                 if (startBtn && formArea) {
                     startBtn.addEventListener('click', function() {
-                        const checkedRows = Array.from(document.querySelectorAll('.row-checkbox:checked'));
-                        if (checkedRows.length === 0) {
+                        const checkedBoxes = Array.from(document.querySelectorAll('.plan-checkbox:checked'));
+                        if (checkedBoxes.length === 0) {
                             alert('Please select shipping plans first!');
                             return;
                         }
-                        // from site, to site 값 수집 (data-from-site, data-to-site 속성 필요)
-                        const fromSites = checkedRows.map(cb => cb.getAttribute('data-from-site'));
-                        const toSites = checkedRows.map(cb => cb.getAttribute('data-to-site'));
+                        // from site, to site 값 수집
+                        const fromSites = checkedBoxes.map(cb => cb.getAttribute('data-from-site'));
+                        const toSites = checkedBoxes.map(cb => cb.getAttribute('data-to-site'));
                         const uniqueFrom = Array.from(new Set(fromSites.filter(Boolean)));
                         const uniqueTo = Array.from(new Set(toSites.filter(Boolean)));
                         if (uniqueFrom.length !== 1 || uniqueTo.length !== 1) {
@@ -635,6 +820,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         formOuter.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     });
                 }
+                
+                // 초기 버튼 상태 설정
+                updateBookingButton();
             });
             </script>
             <script>
@@ -689,17 +877,41 @@ document.addEventListener('DOMContentLoaded', function() {
                         let containerCount = 0;
                         document.getElementById('add-container-btn').addEventListener('click', function() {
                             containerCount++;
-                            // 체크된 row에서 정보 추출
-                            const checkedRows = Array.from(document.querySelectorAll('.row-checkbox:checked'));
-                            // 모델별 원래 계획수량/PO수량/PO번호/모델명 추출
-                            let items = checkedRows.map(cb => {
-                                return {
-                                    model: cb.getAttribute('data-model') || '-',
-                                    plan_qty: parseInt(cb.getAttribute('data-plan-qty')) || 0,
-                                    po_number: cb.getAttribute('data-po-number') || '-',
-                                    po_qty: cb.getAttribute('data-po-qty') || '-',
-                                    model_key: cb.getAttribute('data-model') + '|' + (cb.getAttribute('data-po-number') || '-')
-                                };
+                            // 체크된 카드에서 정보 추출
+                            const checkedBoxes = Array.from(document.querySelectorAll('.plan-checkbox:checked'));
+                            // 모델별 원래 계획수량과 매칭된 PO 정보 추출
+                            let items = [];
+                            checkedBoxes.forEach(cb => {
+                                const card = cb.closest('.plan-card');
+                                const model = cb.getAttribute('data-model') || '-';
+                                const planQty = parseInt(cb.getAttribute('data-plan-qty')) || 0;
+                                
+                                // 매칭된 PO 정보 추출 (카드에서)
+                                const poItems = card.querySelectorAll('.po-item');
+                                if (poItems.length > 0) {
+                                    poItems.forEach(poItem => {
+                                        const poNumber = poItem.querySelector('.po-number').textContent.trim();
+                                        const poQtyText = poItem.querySelector('.po-qty').textContent.trim();
+                                        const poQty = poQtyText.replace('Qty: ', '');
+                                        
+                                        items.push({
+                                            model: model,
+                                            plan_qty: planQty,
+                                            po_number: poNumber,
+                                            po_qty: poQty,
+                                            model_key: model + '|' + poNumber
+                                        });
+                                    });
+                                } else {
+                                    // PO가 없는 경우
+                                    items.push({
+                                        model: model,
+                                        plan_qty: planQty,
+                                        po_number: '-',
+                                        po_qty: '-',
+                                        model_key: model + '|-'
+                                    });
+                                }
                             });
                             if (items.length === 0) {
                                 alert('Please select shipping plans first!');
