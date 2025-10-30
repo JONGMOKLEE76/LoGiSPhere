@@ -254,6 +254,20 @@
         .reset-btn:hover {
             background: #5a6268;
         }
+        .clear-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            align-self: flex-end;
+        }
+        .clear-btn:hover {
+            background: #5a6268;
+        }
         .under {
             color: #888;
             font-size: 1.4em;
@@ -402,7 +416,7 @@
             
             <!-- Search Filter Form -->
             <div class="search-filter" style="margin-bottom: 24px;">
-                <form method="POST" action="{{ url_for('booking_search') }}" id="booking-search-form">
+                <form method="POST" action="{{ url_for('booking_search') }}" id="search-form">
                     <div class="filter-row" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(102,126,234,0.10); padding: 22px 24px 10px 24px; margin-bottom: 0;">
                         <div class="filter-group">
                             <label for="search_booking_number">Booking Number:</label>
@@ -413,7 +427,7 @@
                         <div class="filter-group">
                             <label for="search_shipper">Shipper:</label>
                             <select id="search_shipper" name="shipper">
-                                <option value="">All Shippers</option>
+                                <option value="">All</option>
                                 {% if suppliers %}
                                     {% for supplier in suppliers %}
                                         <option value="{{ supplier }}" 
@@ -426,17 +440,9 @@
                         </div>
                         <div class="filter-group">
                             <label for="search_to_site">To Site:</label>
-                            <select id="search_to_site" name="to_site">
-                                <option value="">All Destinations</option>
-                                {% if to_site_list %}
-                                    {% for site in to_site_list %}
-                                        <option value="{{ site }}" 
-                                                {{ 'selected' if search_params and search_params.to_site == site else '' }}>
-                                            {{ site }}
-                                        </option>
-                                    {% endfor %}
-                                {% endif %}
-                            </select>
+                            <input type="text" id="search_to_site" name="to_site" 
+                                   value="{{ search_params.to_site if search_params else '' }}"
+                                   placeholder="Enter destination...">
                         </div>
                         <div class="filter-group">
                             <label for="search_status">Status:</label>
@@ -465,7 +471,7 @@
                                    placeholder="2024-W50">
                         </div>
                         <button type="submit" class="search-btn">🔍 Search</button>
-                        <button type="button" onclick="clearSearchForm()" class="reset-btn">Clear</button>
+                        <button type="button" onclick="clearSearchForm()" class="clear-btn">Clear</button>
                     </div>
                 </form>
             </div>
