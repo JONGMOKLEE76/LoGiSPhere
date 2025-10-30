@@ -949,6 +949,9 @@ def po():
         supplier_list = []
 
     pos = []
+    total_count = 0
+    page = int(request.args.get('page', 1))
+    per_page = 10
     search_executed = False
     if request.args:  # Search 버튼을 눌렀을 때만 DB 조회
         search_executed = True
@@ -982,18 +985,31 @@ def po():
             po_conditions.append("rsd <= %s")
             po_params.append(week_to_date)
 
-        # Purchase Orders 데이터 조회
+        po_where_clause = " AND ".join(po_conditions)
+        
+        # 전체 개수 조회
+        cursor.execute(f'''SELECT COUNT(*) FROM purchase_orders WHERE {po_where_clause}''', po_params)
+        row = cursor.fetchone()
+        if row:
+            total_count = list(row.values())[0]
+        else:
+            total_count = 0
+            
+        # 페이지네이션 적용
+        offset = (page - 1) * per_page
         cursor.execute(f'''
             SELECT id, po_number, from_site, to_site, model, po_qty, status, rsd,
                    shipped_quantity, is_finished, remark
             FROM purchase_orders 
-            WHERE {" AND ".join(po_conditions)}
+            WHERE {po_where_clause}
             ORDER BY rsd, from_site, to_site, model
-        ''', po_params)
+            LIMIT %s OFFSET %s
+        ''', po_params + [per_page, offset])
         pos = cursor.fetchall()
 
     cursor.close()
     conn.close()
+    total_pages = (total_count + per_page - 1) // per_page if per_page else 1
     return render_template('po.html',
         pos=pos,
         user_info=user_info,
@@ -1002,7 +1018,10 @@ def po():
         week_to=week_to,
         default_weekname=default_weekname,
         default_weekname_to=default_weekname_to,
-        search_executed=search_executed
+        search_executed=search_executed,
+        page=page,
+        total_pages=total_pages,
+        total_count=total_count
     )
 
 @app.route('/add_po', methods=['POST'])
@@ -1229,7 +1248,7 @@ def booking():
         cursor.execute(f'''
             SELECT * FROM shipping_plans
             WHERE {sp_where_clause}
-            ORDER BY id DESC
+            ORDER BY shipping_week ASC, from_site, to_site, model_name
         ''', sp_params)
         plans = cursor.fetchall()
 
@@ -1309,8 +1328,205 @@ def booking():
         to_site=to_site_filter,
         search_executed=search_executed,
         plans=plans,
-        logistics_users=logistics_users
+        logistics_users=logistics_users,
+        # Search 탭을 위한 빈 변수들 (기본 booking 페이지에서)
+        to_site_list=[],
+        status_list=[],
+        booking_results=[],
+        search_params={}
     )
+
+@app.route('/booking_search', methods=['GET', 'POST'])
+def booking_search():
+    """부킹 요청 검색 기능"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_info = session.get('user_info')
+    
+    # 검색 조건 초기화
+    shipper = request.form.get('shipper', '')
+    to_site = request.form.get('to_site', '')
+    week_from = request.form.get('week_from', '')
+    week_to = request.form.get('week_to', '')
+    booking_number = request.form.get('booking_number', '')
+    status = request.form.get('status', '')
+    
+    search_executed = False
+    booking_results = []
+    
+    # Supplier 목록 조회 (화주 필터용)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT DISTINCT shipper 
+        FROM booking_requests 
+        WHERE shipper IS NOT NULL 
+        ORDER BY shipper
+    ''')
+    supplier_list = [row['shipper'] for row in cursor.fetchall()]
+    
+    # To Site 목록 조회 (목적지 필터용)
+    cursor.execute('''
+        SELECT DISTINCT to_site 
+        FROM booking_requests 
+        WHERE to_site IS NOT NULL 
+        ORDER BY to_site
+    ''')
+    to_site_list = [row['to_site'] for row in cursor.fetchall()]
+    
+    # Status 목록 조회 (상태 필터용)
+    cursor.execute('''
+        SELECT DISTINCT status 
+        FROM booking_requests 
+        WHERE status IS NOT NULL 
+        ORDER BY status
+    ''')
+    status_list = [row['status'] for row in cursor.fetchall()]
+    
+    if request.method == 'POST':
+        search_executed = True
+        
+        # 검색 쿼리 구성
+        base_query = '''
+            SELECT br.id, br.booking_request_number, br.shipper, br.to_site, 
+                   br.shipping_week, br.status, br.created_at, br.final_destination,
+                   br.transport_mode, br.crd, br.pol, br.remark,
+                   COUNT(bc.id) as container_count,
+                   SUM(bi.qty) as total_quantity
+            FROM booking_requests br
+            LEFT JOIN booking_containers bc ON br.id = bc.booking_request_id
+            LEFT JOIN booking_items bi ON bc.id = bi.container_id
+        '''
+        
+        conditions = []
+        params = []
+        
+        # 검색 조건 추가
+        if booking_number:
+            conditions.append("br.booking_request_number ILIKE %s")
+            params.append(f"%{booking_number}%")
+        
+        if shipper:
+            conditions.append("br.shipper = %s")
+            params.append(shipper)
+        
+        if to_site:
+            conditions.append("br.to_site ILIKE %s")
+            params.append(f"%{to_site}%")
+        
+        if status:
+            conditions.append("br.status = %s")
+            params.append(status)
+        
+        if week_from:
+            conditions.append("br.shipping_week >= %s")
+            params.append(week_from)
+        
+        if week_to:
+            conditions.append("br.shipping_week <= %s")
+            params.append(week_to)
+        
+        # WHERE 절 구성
+        where_clause = ""
+        if conditions:
+            where_clause = "WHERE " + " AND ".join(conditions)
+        
+        # 최종 쿼리
+        final_query = f'''
+            {base_query}
+            {where_clause}
+            GROUP BY br.id, br.booking_request_number, br.shipper, br.to_site, 
+                     br.shipping_week, br.status, br.created_at, br.final_destination,
+                     br.transport_mode, br.crd, br.pol, br.remark
+            ORDER BY br.created_at DESC
+        '''
+        
+        cursor.execute(final_query, params)
+        booking_results = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('booking.html',
+        user_info=user_info,
+        suppliers=supplier_list,
+        to_site_list=to_site_list,
+        status_list=status_list,
+        search_executed=search_executed,
+        booking_results=booking_results,
+        search_params={
+            'shipper': shipper,
+            'to_site': to_site,
+            'week_from': week_from,
+            'week_to': week_to,
+            'booking_number': booking_number,
+            'status': status
+        }
+    )
+
+@app.route('/booking_detail/<int:booking_id>')
+def booking_detail(booking_id):
+    """부킹 요청 상세 정보 조회 (AJAX용)"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 기본 정보 조회
+    cursor.execute('''
+        SELECT br.*, u.username as created_by_name, u.company as created_by_company
+        FROM booking_requests br
+        LEFT JOIN users u ON br.created_by = u.id
+        WHERE br.id = %s
+    ''', (booking_id,))
+    
+    booking_info = cursor.fetchone()
+    if not booking_info:
+        cursor.close()
+        conn.close()
+        return jsonify({'error': 'Booking not found'}), 404
+    
+    # 컨테이너 및 아이템 정보 조회
+    cursor.execute('''
+        SELECT bc.container_type, bi.model, bi.qty
+        FROM booking_containers bc
+        LEFT JOIN booking_items bi ON bc.id = bi.container_id
+        WHERE bc.booking_request_id = %s
+        ORDER BY bc.id, bi.id
+    ''', (booking_id,))
+    
+    containers = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    # 컨테이너별로 그룹화
+    container_details = {}
+    for item in containers:
+        container_type = item['container_type']
+        if container_type not in container_details:
+            container_details[container_type] = []
+        if item['model']:  # model이 있는 경우만 추가
+            container_details[container_type].append({
+                'model': item['model'],
+                'qty': item['qty']
+            })
+    
+    # JSON 응답용 데이터 구성
+    response_data = {
+        'booking_info': dict(booking_info),
+        'containers': container_details
+    }
+    
+    # datetime 객체를 문자열로 변환
+    if response_data['booking_info']['created_at']:
+        response_data['booking_info']['created_at'] = response_data['booking_info']['created_at'].isoformat()
+    if response_data['booking_info']['crd']:
+        response_data['booking_info']['crd'] = response_data['booking_info']['crd'].isoformat()
+    
+    return jsonify(response_data)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

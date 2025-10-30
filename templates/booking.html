@@ -289,6 +289,77 @@
             transition: background 0.3s, transform 0.2s;
             margin-top: 8px;
         }
+        
+        /* Status badge styles */
+        .status-badge {
+            display: inline-block;
+            text-align: center;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .status-approved {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #b8daff;
+        }
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-cancelled {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            padding: 30px;
+        }
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .close:hover {
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -328,14 +399,158 @@
         </div>
         <div id="tab-content-search" class="tab-content" style="display: none;">
             <h2>Booking Search</h2>
-            <div style="color:#888; font-size:1.1em; padding:32px 0; text-align:center;">Search 탭 내용이 여기에 표시됩니다.</div>
+            
+            <!-- Search Filter Form -->
+            <div class="search-filter" style="margin-bottom: 24px;">
+                <form method="POST" action="{{ url_for('booking_search') }}" id="booking-search-form">
+                    <div class="filter-row" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(102,126,234,0.10); padding: 22px 24px 10px 24px; margin-bottom: 0;">
+                        <div class="filter-group">
+                            <label for="search_booking_number">Booking Number:</label>
+                            <input type="text" id="search_booking_number" name="booking_number" 
+                                   value="{{ search_params.booking_number if search_params else '' }}"
+                                   placeholder="BKG-2024-001">
+                        </div>
+                        <div class="filter-group">
+                            <label for="search_shipper">Shipper:</label>
+                            <select id="search_shipper" name="shipper">
+                                <option value="">All Shippers</option>
+                                {% if suppliers %}
+                                    {% for supplier in suppliers %}
+                                        <option value="{{ supplier }}" 
+                                                {{ 'selected' if search_params and search_params.shipper == supplier else '' }}>
+                                            {{ supplier }}
+                                        </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="search_to_site">To Site:</label>
+                            <select id="search_to_site" name="to_site">
+                                <option value="">All Destinations</option>
+                                {% if to_site_list %}
+                                    {% for site in to_site_list %}
+                                        <option value="{{ site }}" 
+                                                {{ 'selected' if search_params and search_params.to_site == site else '' }}>
+                                            {{ site }}
+                                        </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="search_status">Status:</label>
+                            <select id="search_status" name="status">
+                                <option value="">All Status</option>
+                                {% if status_list %}
+                                    {% for status in status_list %}
+                                        <option value="{{ status }}" 
+                                                {{ 'selected' if search_params and search_params.status == status else '' }}>
+                                            {{ status }}
+                                        </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="search_week_from">Week From:</label>
+                            <input type="text" id="search_week_from" name="week_from" 
+                                   value="{{ search_params.week_from if search_params else '' }}"
+                                   placeholder="2024-W45">
+                        </div>
+                        <div class="filter-group">
+                            <label for="search_week_to">Week To:</label>
+                            <input type="text" id="search_week_to" name="week_to" 
+                                   value="{{ search_params.week_to if search_params else '' }}"
+                                   placeholder="2024-W50">
+                        </div>
+                        <button type="submit" class="search-btn">🔍 Search</button>
+                        <button type="button" onclick="clearSearchForm()" class="reset-btn">Clear</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Search Results -->
+            {% if search_executed %}
+            <div class="search-results">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="margin: 0; color: #2c3556;">Search Results</h3>
+                    <span style="color: #6c757d; font-size: 14px;">
+                        Found {{ booking_results|length }} booking{{ 's' if booking_results|length != 1 else '' }}
+                    </span>
+                </div>
+                
+                {% if booking_results %}
+                <div class="results-table" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(102,126,234,0.10); overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8f9fc; border-bottom: 2px solid #e1e5e9;">
+                                <th style="padding: 16px 20px; text-align: left; font-weight: 600; color: #2c3556; font-size: 14px;">Booking Number</th>
+                                <th style="padding: 16px 20px; text-align: left; font-weight: 600; color: #2c3556; font-size: 14px;">Shipper</th>
+                                <th style="padding: 16px 20px; text-align: left; font-weight: 600; color: #2c3556; font-size: 14px;">To Site</th>
+                                <th style="padding: 16px 20px; text-align: left; font-weight: 600; color: #2c3556; font-size: 14px;">Week</th>
+                                <th style="padding: 16px 20px; text-align: left; font-weight: 600; color: #2c3556; font-size: 14px;">Status</th>
+                                <th style="padding: 16px 20px; text-align: center; font-weight: 600; color: #2c3556; font-size: 14px;">Containers</th>
+                                <th style="padding: 16px 20px; text-align: center; font-weight: 600; color: #2c3556; font-size: 14px;">Total Qty</th>
+                                <th style="padding: 16px 20px; text-align: center; font-weight: 600; color: #2c3556; font-size: 14px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in booking_results %}
+                            <tr style="border-bottom: 1px solid #f1f3f4; transition: background-color 0.2s;" 
+                                onmouseover="this.style.backgroundColor='#f8f9fc'" 
+                                onmouseout="this.style.backgroundColor='white'">
+                                <td style="padding: 16px 20px; font-size: 14px; color: #2c3556; font-weight: 600;">
+                                    {{ booking.booking_request_number }}
+                                </td>
+                                <td style="padding: 16px 20px; font-size: 14px; color: #495057;">
+                                    {{ booking.shipper }}
+                                </td>
+                                <td style="padding: 16px 20px; font-size: 14px; color: #495057;">
+                                    {{ booking.to_site }}
+                                </td>
+                                <td style="padding: 16px 20px; font-size: 14px; color: #495057;">
+                                    {{ booking.shipping_week }}
+                                </td>
+                                <td style="padding: 16px 20px; font-size: 14px;">
+                                    <span class="status-badge status-{{ booking.status.lower() }}" 
+                                          style="padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
+                                        {{ booking.status }}
+                                    </span>
+                                </td>
+                                <td style="padding: 16px 20px; text-align: center; font-size: 14px; color: #495057;">
+                                    {{ booking.container_count or 0 }}
+                                </td>
+                                <td style="padding: 16px 20px; text-align: center; font-size: 14px; color: #495057;">
+                                    {{ booking.total_quantity or 0 }}
+                                </td>
+                                <td style="padding: 16px 20px; text-align: center;">
+                                    <button onclick="showBookingDetail({{ booking.id }})" 
+                                            style="background: #667eea; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s;">
+                                        View Detail
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 48px 20px; color: #6c757d; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(102,126,234,0.10);">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+                    <h3 style="margin: 0 0 8px 0; color: #495057;">No Results Found</h3>
+                    <p style="margin: 0; font-size: 14px;">Try adjusting your search criteria</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
         <div id="tab-content-request" class="tab-content" style="display: block;">
             <h2>Booking Request</h2>
             <!-- 기존 booking management/폼 전체를 이 div로 이동 -->
             <!-- Search Filter Form -->
             <div class="search-filter">
-                <form method="GET" action="{{ url_for('booking') }}">
+                <form method="GET" action="{{ url_for('booking') }}" id="booking-search-form">
                     <div class="filter-row" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(102,126,234,0.10); padding: 22px 24px 10px 24px; margin-bottom: 0;">
                         <div class="filter-group">
                             <label for="supplier">Supplier:</label>
@@ -350,8 +565,8 @@
                             </select>
                         </div>
                         <div class="filter-group">
-                            <label for="to_site">To Site:</label>
-                            <input type="text" name="to_site" id="to_site" placeholder="To Site" value="{{ request.args.get('to_site', '') }}">
+                            <label for="to_site">To Site: <span style="color: red;">*</span></label>
+                            <input type="text" name="to_site" id="to_site" placeholder="To Site (Required)" value="{{ request.args.get('to_site', '') }}" required>
                         </div>
                         <div class="filter-group">
                             <label for="week_from">Week From:</label>
@@ -373,6 +588,22 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
                 showTab('request');
             }, 10);
+        });
+    }
+    
+    // To Site validation for booking search form
+    var bookingSearchForm = document.getElementById('booking-search-form');
+    if (bookingSearchForm) {
+        bookingSearchForm.addEventListener('submit', function(event) {
+            var toSiteInput = document.getElementById('to_site');
+            var toSiteValue = toSiteInput.value.trim();
+            
+            if (!toSiteValue) {
+                event.preventDefault(); // 폼 제출 방지
+                alert('Please enter the To Site information to search for shipping plans.');
+                toSiteInput.focus(); // 입력 필드에 포커스
+                return false;
+            }
         });
     }
 });
@@ -776,17 +1007,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 });
                 
-                // 선택된 계획 수에 따라 버튼 텍스트 업데이트
+                // 선택된 계획 수에 따라 버튼 표시/숨김 및 텍스트 업데이트
                 function updateBookingButton() {
                     const startBtn = document.getElementById('start-booking-btn');
                     const checkedCount = document.querySelectorAll('.plan-checkbox:checked').length;
                     if (startBtn) {
                         if (checkedCount === 0) {
-                            startBtn.textContent = '🚢 Start Booking';
-                            startBtn.style.opacity = '0.6';
+                            startBtn.style.display = 'none'; // 선택된 카드가 없으면 버튼 숨김
                         } else {
+                            startBtn.style.display = 'block'; // 카드가 선택되면 버튼 표시
                             startBtn.textContent = `🚢 Book Selected Plans (${checkedCount})`;
-                            startBtn.style.opacity = '1';
                         }
                     }
                 }
@@ -798,10 +1028,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (startBtn && formArea) {
                     startBtn.addEventListener('click', function() {
                         const checkedBoxes = Array.from(document.querySelectorAll('.plan-checkbox:checked'));
-                        if (checkedBoxes.length === 0) {
-                            alert('Please select shipping plans first!');
-                            return;
-                        }
+                        // 버튼이 보인다는 것 자체가 카드가 선택되었다는 의미이므로 추가 체크 불필요
+                        
                         // from site, to site 값 수집
                         const fromSites = checkedBoxes.map(cb => cb.getAttribute('data-from-site'));
                         const toSites = checkedBoxes.map(cb => cb.getAttribute('data-to-site'));
@@ -1164,14 +1392,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 .then(response => response.json())
                                                 .then(data => {
                                                     if (data.success) {
-                                                        alert('Booking 저장이 완료되었습니다!');
+                                                        alert('Your Booking request was successfully submitted!');
                                                         // location.href = '/booking'; // 필요시 리다이렉트
                                                     } else {
-                                                        alert('저장 실패: ' + (data.message || '알 수 없는 오류'));
+                                                        alert('Submission failed: ' + (data.message || 'Unknown error'));
                                                     }
                                                 })
                                                 .catch(error => {
-                                                    alert('서버 통신 오류: ' + error);
+                                                    alert('Server communication error: ' + error);
                                                 });
                                         });
                                     }
@@ -1198,6 +1426,121 @@ document.addEventListener('DOMContentLoaded', function() {
                         };
             </script>
         {% endif %}
+        
+        <!-- Booking Detail Modal -->
+        <div id="bookingDetailModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 style="margin: 0;">Booking Details</h2>
+                    <span class="close" onclick="closeBookingModal()">&times;</span>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            // Search form clear function
+            function clearSearchForm() {
+                document.getElementById('search_booking_number').value = '';
+                document.getElementById('search_shipper').value = '';
+                document.getElementById('search_to_site').value = '';
+                document.getElementById('search_status').value = '';
+                document.getElementById('search_week_from').value = '';
+                document.getElementById('search_week_to').value = '';
+            }
+            
+            // Show booking detail modal
+            function showBookingDetail(bookingId) {
+                const modal = document.getElementById('bookingDetailModal');
+                const modalBody = document.getElementById('modalBody');
+                
+                // Show loading
+                modalBody.innerHTML = '<div style="text-align: center; padding: 40px;"><div style="font-size: 18px; color: #666;">Loading...</div></div>';
+                modal.style.display = 'block';
+                
+                // Fetch booking details
+                fetch(`/booking_detail/${bookingId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            modalBody.innerHTML = `<div style="text-align: center; padding: 40px; color: #e74c3c;">${data.error}</div>`;
+                            return;
+                        }
+                        
+                        const booking = data.booking_info;
+                        const containers = data.containers;
+                        
+                        let containersHtml = '';
+                        for (const [containerType, items] of Object.entries(containers)) {
+                            containersHtml += `
+                                <div style="margin-bottom: 16px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #2c3556; font-size: 16px;">${containerType}</h4>
+                                    <div style="margin-left: 20px;">
+                            `;
+                            items.forEach(item => {
+                                containersHtml += `<div style="margin-bottom: 4px; color: #666;">• ${item.model}: ${item.qty} pcs</div>`;
+                            });
+                            containersHtml += '</div></div>';
+                        }
+                        
+                        modalBody.innerHTML = `
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                                <div>
+                                    <h3 style="margin: 0 0 20px 0; color: #2c3556; border-bottom: 2px solid #e1e5e9; padding-bottom: 10px;">Basic Information</h3>
+                                    <div style="display: grid; gap: 12px;">
+                                        <div><strong>Booking Number:</strong> ${booking.booking_request_number}</div>
+                                        <div><strong>Shipper:</strong> ${booking.shipper}</div>
+                                        <div><strong>To Site:</strong> ${booking.to_site}</div>
+                                        <div><strong>Final Destination:</strong> ${booking.final_destination || 'N/A'}</div>
+                                        <div><strong>Shipping Week:</strong> ${booking.shipping_week}</div>
+                                        <div><strong>Transport Mode:</strong> ${booking.transport_mode}</div>
+                                        <div><strong>CRD:</strong> ${booking.crd ? new Date(booking.crd).toLocaleDateString() : 'N/A'}</div>
+                                        <div><strong>POL:</strong> ${booking.pol || 'N/A'}</div>
+                                        <div><strong>Status:</strong> <span class="status-badge status-${booking.status.toLowerCase()}" style="padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">${booking.status}</span></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 style="margin: 0 0 20px 0; color: #2c3556; border-bottom: 2px solid #e1e5e9; padding-bottom: 10px;">Container Information</h3>
+                                    ${containersHtml || '<div style="color: #666;">No container information available</div>'}
+                                </div>
+                            </div>
+                            <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e1e5e9;">
+                                <h3 style="margin: 0 0 16px 0; color: #2c3556;">Additional Information</h3>
+                                <div style="display: grid; gap: 12px;">
+                                    <div><strong>Created By:</strong> ${booking.created_by_name} (${booking.created_by_company})</div>
+                                    <div><strong>Created At:</strong> ${booking.created_at ? new Date(booking.created_at).toLocaleString() : 'N/A'}</div>
+                                    <div><strong>Remark:</strong> ${booking.remark || 'N/A'}</div>
+                                </div>
+                            </div>
+                        `;
+                    })
+                    .catch(error => {
+                        modalBody.innerHTML = `<div style="text-align: center; padding: 40px; color: #e74c3c;">Error loading booking details: ${error}</div>`;
+                    });
+            }
+            
+            // Close booking detail modal
+            function closeBookingModal() {
+                document.getElementById('bookingDetailModal').style.display = 'none';
+            }
+            
+            // Close modal when clicking outside
+            window.onclick = function(event) {
+                const modal = document.getElementById('bookingDetailModal');
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            }
+            
+            // Check if search was executed and show search tab
+            {% if search_executed %}
+            document.addEventListener('DOMContentLoaded', function() {
+                showTab('search');
+            });
+            {% endif %}
+        </script>
     </div>
 </body>
 </html>

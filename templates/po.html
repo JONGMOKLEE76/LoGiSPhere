@@ -400,6 +400,29 @@
                 {% endfor %}
             </tbody>
         </table>
+        <!-- Pagination -->
+        <div style="margin-top: 24px; display: flex; justify-content: center; align-items: center; gap: 16px;">
+            {% if total_pages > 1 %}
+                <form method="get" action="{{ url_for('po') }}" style="display: inline;">
+                    {% for key, value in request.args.items() %}
+                        {% if key != 'page' %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+                    <button type="submit" name="page" value="{{ page - 1 }}" class="btn btn-primary" {% if page <= 1 %}disabled{% endif %}>Prev</button>
+                </form>
+                <span style="font-size: 1.1em; font-weight: bold;">Page {{ page }} / {{ total_pages }}</span>
+                <form method="get" action="{{ url_for('po') }}" style="display: inline;">
+                    {% for key, value in request.args.items() %}
+                        {% if key != 'page' %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+                    <button type="submit" name="page" value="{{ page + 1 }}" class="btn btn-primary" {% if page >= total_pages %}disabled{% endif %}>Next</button>
+                </form>
+            {% endif %}
+            <span style="margin-left: 24px; color: #666; font-size: 1em;">Total: {{ total_count }} records</span>
+        </div>
         {% endif %}
 
     <script>
