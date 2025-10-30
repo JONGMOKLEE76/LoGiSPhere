@@ -95,7 +95,7 @@ def add_booking():
                         basic['transport_mode'],
                         logistics_contact_id,
                         remark,
-                        'requested'
+                        'Requested'
                     ))
                     booking_request_id = cur.fetchone()['id']
 
@@ -1197,6 +1197,7 @@ def booking():
     to_site_filter = request.args.get('to_site', '')
     week_from = request.args.get('week_from', default_weekname)
     week_to = request.args.get('week_to', default_weekname_to)
+    active_tab = request.args.get('active_tab', '')  # 어느 탭에서 검색했는지 확인
 
     user_company = user_info['company']
     cursor.execute('SELECT type FROM companies WHERE name = %s', (user_company,))
@@ -1329,6 +1330,7 @@ def booking():
         search_executed=search_executed,
         plans=plans,
         logistics_users=logistics_users,
+        active_tab=active_tab,  # 활성 탭 정보 전달
         # Search 탭을 위한 빈 변수들 (기본 booking 페이지에서)
         to_site_list=[],
         status_list=[],
@@ -1341,49 +1343,68 @@ def booking_search():
     """부킹 요청 검색 기능"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    # 로그인한 유저 정보
+    user_info = {
+        'username': session.get('username'),
+        'avatar': session.get('avatar'),
+        'company': session.get('company'),
+        'is_admin': session.get('is_admin')
+    }
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 기본 week 값 계산
+    today = datetime.today()
+    default_weekname = convert_date_to_week_format(today)
+    four_weeks_later = today + timedelta(weeks=4)
+    default_weekname_to = convert_date_to_week_format(four_weeks_later)
+
+    # GET/POST에 따른 검색 조건 초기화
+    if request.method == 'POST':
+        # 실제 검색 실행
+        shipper = request.form.get('shipper', '')
+        to_site = request.form.get('to_site', '')
+        week_from = request.form.get('week_from', '')
+        week_to = request.form.get('week_to', '')
+        booking_number = request.form.get('booking_number', '')
+        status = request.form.get('status', '')
+        active_tab = request.form.get('active_tab', 'search')
+    else:
+        # GET 요청 시 단순 탭 이동 (기본값)
+        shipper = ''
+        to_site = ''
+        week_from = ''
+        week_to = ''
+        booking_number = ''
+        status = ''
+        active_tab = 'search'
     
-    user_info = session.get('user_info')
+    # 유저의 company type 조회
+    user_company = user_info['company']
+    cursor.execute('SELECT type FROM companies WHERE name = %s', (user_company,))
+    row = cursor.fetchone()
+    user_company_type = row['type'] if row else None
     
-    # 검색 조건 초기화
-    shipper = request.form.get('shipper', '')
-    to_site = request.form.get('to_site', '')
-    week_from = request.form.get('week_from', '')
-    week_to = request.form.get('week_to', '')
-    booking_number = request.form.get('booking_number', '')
-    status = request.form.get('status', '')
-    
+    # Supplier 목록 조건 분기
+    if user_company_type == 'LG Electronics':
+        cursor.execute('''
+            SELECT name FROM companies WHERE type = %s AND is_terminated = FALSE
+        ''', ('Outsourcing',))
+        supplier_list = sorted([row['name'] for row in cursor.fetchall()])
+        supplier_list = ['All'] + supplier_list
+    elif user_company_type == 'Outsourcing':
+        supplier_list = [user_company]
+    else:
+        supplier_list = []
+
     search_executed = False
     booking_results = []
     
-    # Supplier 목록 조회 (화주 필터용)
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT DISTINCT shipper 
-        FROM booking_requests 
-        WHERE shipper IS NOT NULL 
-        ORDER BY shipper
-    ''')
-    supplier_list = [row['shipper'] for row in cursor.fetchall()]
+    # Status 목록 조회 (상태 필터용) - 항상 제공
+    status_list = ['Requested', 'Confirmed', 'Cancelled', 'Completed']
     
-    # To Site 목록 조회 (목적지 필터용)
-    cursor.execute('''
-        SELECT DISTINCT to_site 
-        FROM booking_requests 
-        WHERE to_site IS NOT NULL 
-        ORDER BY to_site
-    ''')
-    to_site_list = [row['to_site'] for row in cursor.fetchall()]
-    
-    # Status 목록 조회 (상태 필터용)
-    cursor.execute('''
-        SELECT DISTINCT status 
-        FROM booking_requests 
-        WHERE status IS NOT NULL 
-        ORDER BY status
-    ''')
-    status_list = [row['status'] for row in cursor.fetchall()]
-    
+    # POST 요청일 때만 실제 검색 실행
     if request.method == 'POST':
         search_executed = True
         
@@ -1451,10 +1472,12 @@ def booking_search():
     return render_template('booking.html',
         user_info=user_info,
         suppliers=supplier_list,
-        to_site_list=to_site_list,
+        default_weekname=default_weekname,
+        default_weekname_to=default_weekname_to,
         status_list=status_list,
         search_executed=search_executed,
         booking_results=booking_results,
+        active_tab=active_tab,  # 활성 탭 정보 전달
         search_params={
             'shipper': shipper,
             'to_site': to_site,
@@ -1527,6 +1550,37 @@ def booking_detail(booking_id):
         response_data['booking_info']['crd'] = response_data['booking_info']['crd'].isoformat()
     
     return jsonify(response_data)
+
+@app.route('/booking_status')
+def booking_status():
+    """부킹 상태 조회 기능 - 추후 구현 예정"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_info = {
+        'username': session.get('username'),
+        'avatar': session.get('avatar'),
+        'company': session.get('company'),
+        'is_admin': session.get('is_admin')
+    }
+    
+    # 기본 데이터만 제공 (Status 탭 전용)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 향후 Status 관련 데이터 조회 로직이 들어갈 예정
+    status_data = []  # 추후 구현
+    
+    conn.close()
+    
+    return render_template('booking.html', 
+                         user_info=user_info,
+                         active_tab='status',
+                         status_data=status_data,
+                         # Search, Request 탭에서 필요한 데이터는 제공하지 않음
+                         suppliers=[],
+                         status_list=[],
+                         search_executed=False)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
